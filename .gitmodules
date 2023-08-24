@@ -324,4 +324,7 @@
 	url = https://github.com/STMicroelectronics/STM32CubeWB.git
         branch = v1.17.0
         platform = stm32
-
+[submodule "third_party/lwip/repo"]
+	path = third_party/lwip/repo
+	url = https://github.com/lwip-tcpip/lwip.git
+	branch = master
