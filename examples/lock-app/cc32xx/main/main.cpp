@@ -74,3 +74,16 @@ int main(void)
     while (true)
         ;
 }
+
+// ================================================================================
+// FreeRTOS Wrappers for Kernel Aware Debug (Runtime Object Viewer)
+// ================================================================================
+extern "C" void vQueueAddToRegistryWrapper(QueueHandle_t xQueue, const char * pcQueueName)
+{
+    vQueueAddToRegistry(xQueue, pcQueueName);
+}
+
+extern "C" void vQueueUnregisterQueueWrapper(QueueHandle_t xQueue)
+{
+    vQueueUnregisterQueue(xQueue);
+}

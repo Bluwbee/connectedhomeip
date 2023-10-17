@@ -45,10 +45,7 @@
 #include <type_traits>
 
 extern "C" {
-#include <ti/net/slnetconn.h>
-#define SLNETCONN_TIMEOUT 0xffff // "infinite" Timeout
-
-extern void SlNetConnEventHandler(uint32_t ifID, SlNetConnStatus_e netStatus, void * data);
+#include "wifi_if.h"
 }
 
 #if !CHIP_DEVICE_CONFIG_ENABLE_WIFI_STATION
@@ -65,7 +62,6 @@ using namespace ::chip::System;
 using namespace ::chip::TLV;
 
 extern "C" void cc32xxLog(const char * aFormat, ...);
-static struct netif * m_pNetIf = NULL;
 
 namespace chip {
 namespace DeviceLayer {
@@ -140,26 +136,12 @@ CHIP_ERROR ConnectivityManagerImpl::_GetAndLogWifiStatsCounters(void)
 
 CHIP_ERROR ConnectivityManagerImpl::_Init()
 {
-    int rc;
-    cc32xxLog("Start LWIP");
-    rc = LWIP_IF_init(_OnLwipEvent, false);
-    if (rc == 0)
-    {
-        m_pNetIf = LWIP_IF_addInterface();
-    }
-    if (m_pNetIf == NULL)
-    {
-        cc32xxLog("LWIP IF not started, error = %d", rc);
-    }
-    else
-    {
-        cc32xxLog("Start Wi-Fi");
-        /* Try to connect to AP and go through provisioning (if needed) */
-        rc = SlNetConn_start(SLNETCONN_SERVICE_LVL_MAC, SlNetConnEventHandler, SLNETCONN_TIMEOUT, 0);
-        assert(rc == 0);
-
-        LWIP_IF_setLinkUp(m_pNetIf);
-    }
+   void *hWifiConn;
+    
+   cc32xxLog("Start Wi-Fi");
+   WIFI_IF_start(_OnWifiEvent, WIFI_SERVICE_LVL_MAC, 0xffff, &hWifiConn);
+   /* Try to connect to AP and go through provisioning (if needed) */
+   
     return CHIP_NO_ERROR;
 }
 
@@ -184,13 +166,14 @@ void ConnectivityManagerImpl::_OnWiFiStationProvisionChange()
 }
 
 // ==================== ConnectivityManager Private Methods ====================
-void ConnectivityManagerImpl::_OnLwipEvent(struct netif * pNetIf, NetIfStatus_e status, void * pParams)
+void ConnectivityManagerImpl::_OnWifiEvent(WifiConnStatus_e status)
 {
+    cc32xxLog("ConnectivityManagerImpl::_OnWifiEvent(%d)\n\r", status);
     switch (status)
     {
-    case E_NETIF_STATUS_IP_ACQUIRED:
+    case WIFI_STATUS_CONNECTED_IP:
         PlatformMgr().ScheduleWork(_OnIpAcquired);
-        cc32xxLog("ConnectivityManagerImpl::OnLwipEvent() : Scheduled OnIpAcquired");
+        cc32xxLog("ConnectivityManagerImpl::_OnWifiEvent() : Scheduled OnIpAcquired");
         break;
     default:
         break;

@@ -47,10 +47,9 @@
 /* syscfg */
 #include <ti_drivers_config.h>
 
-extern "C" {
-extern int WiFi_init();
-extern void DisplayBanner();
-}
+/* Application Version and Naming*/
+#define APPLICATION_NAME "CC32XX-MATTER:: E-LOCK"
+#define APPLICATION_VERSION "01.00.00.00"
 
 #define APP_TASK_STACK_SIZE (4096)
 #define APP_TASK_PRIORITY 4
@@ -68,12 +67,30 @@ using namespace ::chip::DeviceManager;
 static TaskHandle_t sAppTaskHandle;
 static QueueHandle_t sAppEventQueue;
 
-extern LED_Handle gLedGreenHandle, gLedRedHandle;
+LED_Handle gLedGreenHandle, gLedRedHandle;
 static Button_Handle gButtonRightHandle;
 
 AppTask AppTask::sAppTask;
 
 static DeviceCallbacks EchoCallbacks;
+
+//
+//! \brief  Application startup display on UART
+//!
+//! \param  none
+//!
+//! \return none
+//!
+//*****************************************************************************
+static void DisplayBanner()
+{
+    cc32xxLog("\n\n\n\r");
+    cc32xxLog("\t\t *************************************************\n\r");
+    cc32xxLog("\t\t            %s Application       \n\r", APPLICATION_NAME);
+    cc32xxLog("\t\t            %s            \n\r", APPLICATION_VERSION);
+    cc32xxLog("\t\t *************************************************\n\r");
+    cc32xxLog("\n\n\n\r");
+}
 
 int AppTask::StartAppTask()
 {
@@ -103,6 +120,9 @@ int AppTask::Init()
     CHIP_ERROR ret;
     LED_Params ledParams;
     Button_Params buttonParams;
+
+    GPIO_init();
+    SPI_init();
 
     cc32xxLogInit();
 
@@ -136,7 +156,7 @@ int AppTask::Init()
     Button_setCallback(gButtonRightHandle, ButtonRightEventHandler);
 
     PLAT_LOG("Initialize Wi-Fi");
-    WiFi_init();
+    WIFI_IF_init(true);
 
     PLAT_LOG("Initialize CHIP stack");
     ret = PlatformMgr().InitChipStack();

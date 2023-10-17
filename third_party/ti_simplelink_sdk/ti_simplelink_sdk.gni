@@ -214,8 +214,7 @@ template("ti_simplelink_sdk") {
         "${ti_simplelink_sdk_root}/source/ti/drivers/net/wifi/slnetif/gcc/Release/slnetifwifi.a",
       ]
       include_dirs += [
-        "${ti_simplelink_sdk_root}/examples/rtos/common/",
-        "${ti_simplelink_sdk_root}/examples/rtos/common/ifmod",
+        "${ti_simplelink_sdk_root}/platforms/inc/",
       ]
     }
 

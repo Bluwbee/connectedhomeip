@@ -70,9 +70,6 @@ CHIP_ERROR PlatformManagerImpl::_InitChipStack(void)
     err = Internal::CC32XXConfig::Init();
     SuccessOrExit(err);
 
-    // Initialize LwIP.
-    tcpip_init(NULL, NULL);
-
     app_random_init();
     err = chip::Crypto::add_entropy_source(app_entropy_source, NULL, 16);
     SuccessOrExit(err);

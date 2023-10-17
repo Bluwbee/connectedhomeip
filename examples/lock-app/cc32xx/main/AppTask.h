@@ -29,6 +29,9 @@
 #include "AppEvent.h"
 #include "BoltLockManager.h"
 
+#include <ti/drivers/GPIO.h>
+#include <ti/drivers/SPI.h>
+
 #include <ti/drivers/apps/Button.h>
 
 class AppTask

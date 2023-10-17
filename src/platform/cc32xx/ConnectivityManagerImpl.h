@@ -40,7 +40,7 @@
 #include <platform/internal/GenericConnectivityManagerImpl_NoThread.h>
 
 extern "C" {
-#include "lwip_if.h"
+#include "wifi_if.h"
 }
 
 namespace chip {
@@ -130,7 +130,7 @@ private:
     void OnStationDisconnected(void);
     void ChangeWiFiStationState(WiFiStationState newState);
 
-    static void _OnLwipEvent(struct netif * pNetIf, NetIfStatus_e status, void * pParams);
+    static void _OnWifiEvent(WifiConnStatus_e status);
     static void _OnIpAcquired(intptr_t arg);
     CHIP_ERROR ConfigureWiFiAP(void);
     void ChangeWiFiAPState(WiFiAPState newState);

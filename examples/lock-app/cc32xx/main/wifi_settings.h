@@ -98,6 +98,6 @@
 /* Define (if needed) the external handle for TI Driver's LED for wi-fi status:
  * off: disconnected, blinking: provisionig, on: connected
  * Comment the definition in case the auto control is not required */
-#define WIFI_LED_HANDLE gLedBlueHandle
+// #define WIFI_LED_HANDLE gLedBlueHandle
 
 #endif // WIFI_SETTINGS_H
