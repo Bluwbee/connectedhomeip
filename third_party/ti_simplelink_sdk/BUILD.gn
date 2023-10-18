@@ -60,7 +60,11 @@ config("ti_simplelink_mbedtls_config") {
   } else if (ti_simplelink_device_family == "cc32xx") {
     defines = [ "MBEDTLS_CONFIG_FILE=\"cc32xx-mbedtls-config.h\"" ]
 
-    include_dirs = [ "${chip_root}/src/platform/cc32xx" ]
+    include_dirs = [ 
+      "${chip_root}/src/platform/cc32xx",
+      "${ti_simplelink_sdk_root}/source/third_party/mbedtls/ti/port",
+      #"${ti_simplelink_sdk_root}/source/ti/posix/gcc"
+    ]
   }
 }
 
@@ -83,6 +87,12 @@ mbedtls_target("mbedtls") {
       "${chip_root}/src/platform/cc13xx_26xx/cc13x4_26x4/crypto/ecdsa_alt.c",
       "${chip_root}/src/platform/cc13xx_26xx/cc13x4_26x4/crypto/ecjpake_alt.c",
       "${chip_root}/src/platform/cc13xx_26xx/cc13x4_26x4/crypto/sha256_alt.c",
+    ] 
+  }
+  if (ti_simplelink_device_family == "cc32xx") {
+    sources = [
+      "${ti_simplelink_sdk_root}/source/third_party/mbedtls/ti/port/entropy_alt.c",
+      #"${ti_simplelink_sdk_root}/source/third_party/mbedtls/ti/port/threading_alt.c",
     ]
   }
 
