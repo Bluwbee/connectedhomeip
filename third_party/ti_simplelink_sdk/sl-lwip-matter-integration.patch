@@ -1,0 +1,590 @@
+diff --git a/platforms/drivers/cc32xx-transceiver/wifi_if.c b/platforms/drivers/cc32xx-transceiver/wifi_if.c
+index dc87582..d3560ea 100644
+--- a/platforms/drivers/cc32xx-transceiver/wifi_if.c
++++ b/platforms/drivers/cc32xx-transceiver/wifi_if.c
+@@ -356,165 +356,165 @@ static int NetworkBypass(bool bEnableCmd)
+ //! \return None
+ //!
+ //*****************************************************************************
+-void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
+-{
+-    static const char *Roles[] = {"STA","STA","AP","P2P"};
+-    static const char *WlanStatus[] = {"DISCONNECTED","SCANING","CONNECTING","CONNECTED"};
+-
+-    switch(pWlanEvent->Id)
+-    {
+-    case SL_WLAN_EVENT_CONNECT:
+-        /* set the string terminate */
+-        pWlanEvent->Data.Connect.SsidName[pWlanEvent->Data.Connect.SsidLen] =
+-                '\0';
+-        LOG_INFO(" [Event] STA connected to AP "
+-                "- BSSID:%.2x:%.2x:%.2x:%.2x:%.2x:%.2x, SSID:%s",
+-                pWlanEvent->Data.Connect.Bssid[0],
+-                pWlanEvent->Data.Connect.Bssid[1],
+-                pWlanEvent->Data.Connect.Bssid[2],
+-                pWlanEvent->Data.Connect.Bssid[3],
+-                pWlanEvent->Data.Connect.Bssid[4],
+-                pWlanEvent->Data.Connect.Bssid[5],
+-                pWlanEvent->Data.Connect.SsidName);
+-
+-        break;
+-
+-    case SL_WLAN_EVENT_DISCONNECT:
+-        LOG_INFO(" [Event] STA disconnected from AP (Reason Code = %d)",
+-                 pWlanEvent->Data.Disconnect.ReasonCode);
+-        break;
+-
+-    case SL_WLAN_EVENT_STA_ADDED:
+-        LOG_DEBUG(" [Event] New STA Addeed (MAC Address:  %.2x:%.2x:%.2x:%.2x:%.2x)",
+-                  pWlanEvent->Data.STAAdded.Mac[0],
+-                  pWlanEvent->Data.STAAdded.Mac[1],
+-                  pWlanEvent->Data.STAAdded.Mac[2],
+-                  pWlanEvent->Data.STAAdded.Mac[3],
+-                  pWlanEvent->Data.STAAdded.Mac[4],
+-                  pWlanEvent->Data.STAAdded.Mac[5]);
+-        break;
+-
+-    case SL_WLAN_EVENT_STA_REMOVED:
+-        LOG_DEBUG(" [Event] STA Removed (MAC Address: %.2x:%.2x:%.2x:%.2x:%.2x)",
+-                  pWlanEvent->Data.STAAdded.Mac[0],
+-                  pWlanEvent->Data.STAAdded.Mac[1],
+-                  pWlanEvent->Data.STAAdded.Mac[2],
+-                  pWlanEvent->Data.STAAdded.Mac[3],
+-                  pWlanEvent->Data.STAAdded.Mac[4],
+-                  pWlanEvent->Data.STAAdded.Mac[5]);
+-        break;
+-
+-    case SL_WLAN_EVENT_PROVISIONING_PROFILE_ADDED:
+-        LOG_DEBUG(" [Provisioning] Profile Added: SSID: %s",
+-                  pWlanEvent->Data.ProvisioningProfileAdded.Ssid);
+-        if(pWlanEvent->Data.ProvisioningProfileAdded.ReservedLen > 0)
+-        {
+-            LOG_DEBUG(" [Provisioning] Profile Added: PrivateToken:%s",
+-                      pWlanEvent->Data.ProvisioningProfileAdded.Reserved);
+-        }
+-        break;
+-
+-    case SL_WLAN_EVENT_PROVISIONING_STATUS:
+-    {
+-        switch(pWlanEvent->Data.ProvisioningStatus.ProvisioningStatus)
+-        {
+-        case SL_WLAN_PROVISIONING_GENERAL_ERROR:
+-        case SL_WLAN_PROVISIONING_ERROR_ABORT:
+-        case SL_WLAN_PROVISIONING_ERROR_ABORT_INVALID_PARAM:
+-        case SL_WLAN_PROVISIONING_ERROR_ABORT_HTTP_SERVER_DISABLED:
+-        case SL_WLAN_PROVISIONING_ERROR_ABORT_PROFILE_LIST_FULL:
+-        case SL_WLAN_PROVISIONING_ERROR_ABORT_PROVISIONING_ALREADY_STARTED:
+-            LOG_DEBUG(" [Provisioning] Provisioning Error status=%d",
+-                      pWlanEvent->Data.ProvisioningStatus.ProvisioningStatus);
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_FAIL_NETWORK_NOT_FOUND:
+-            LOG_DEBUG(" [Provisioning] Profile confirmation failed: "
+-                    "network not found");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_FAIL_CONNECTION_FAILED:
+-            LOG_DEBUG(" [Provisioning] Profile confirmation failed:"
+-                    " Connection failed");
+-            break;
+-
+-        case
+-        SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_CONNECTION_SUCCESS_IP_NOT_ACQUIRED:
+-            LOG_DEBUG(" [Provisioning] Profile confirmation failed:"
+-                    " IP address not acquired");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_SUCCESS_FEEDBACK_FAILED:
+-            LOG_DEBUG(" [Provisioning] Profile Confirmation failed "
+-                    " (Connection Success, feedback to Smartphone app failed)");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_SUCCESS:
+-            LOG_DEBUG(" [Provisioning] Profile Confirmation Success!");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_AUTO_STARTED:
+-            LOG_DEBUG(" [Provisioning] Auto-Provisioning Started");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_STOPPED:
+-            LOG_DEBUG(" Provisioning stopped: Current Role: %s",
+-                      Roles[pWlanEvent->Data.ProvisioningStatus.Role]);
+-            if(ROLE_STA == pWlanEvent->Data.ProvisioningStatus.Role)
+-            {
+-                LOG_DEBUG("WLAN Status: %s",
+-                          WlanStatus[pWlanEvent->Data.ProvisioningStatus.
+-                                     WlanStatus]);
+-
+-                if(SL_WLAN_STATUS_CONNECTED ==
+-                        pWlanEvent->Data.ProvisioningStatus.WlanStatus)
+-                {
+-                    LOG_DEBUG("Connected to SSID: %s",
+-                              pWlanEvent->Data.ProvisioningStatus.Ssid);
+-                }
+-            }
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_SMART_CONFIG_SYNCED:
+-            LOG_DEBUG(" [Provisioning] Smart Config Synced!");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_SMART_CONFIG_SYNC_TIMEOUT:
+-            LOG_DEBUG(" [Provisioning] Smart Config Sync Timeout!");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_CONFIRMATION_WLAN_CONNECT:
+-            LOG_DEBUG(
+-                    " [Provisioning] Profile confirmation: WLAN Connected!");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_CONFIRMATION_IP_ACQUIRED:
+-            LOG_DEBUG(
+-                    " [Provisioning] Profile confirmation: IP Acquired!");
+-            break;
+-
+-        case SL_WLAN_PROVISIONING_EXTERNAL_CONFIGURATION_READY:
+-            LOG_DEBUG(" [Provisioning] External configuration is ready! ");
+-            /* [External configuration]: External configuration is ready,
+-start the external configuration process.
+-        In case of using the external provisioning
+-enable the function below which will trigger StartExternalProvisioning() */
+-            break;
+-
+-        default:
+-            LOG_ERROR(" [Provisioning] Unknown Provisioning Status: %d",
+-                      pWlanEvent->Data.ProvisioningStatus.ProvisioningStatus);
+-            break;
+-        }
+-    }
+-    break;
+-
+-    default:
+-        LOG_ERROR(" [Event] - WlanEventHandler has received %d !!!!",
+-                  pWlanEvent->Id);
+-        break;
+-    }
+-}
++// void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
++// {
++//     static const char *Roles[] = {"STA","STA","AP","P2P"};
++//     static const char *WlanStatus[] = {"DISCONNECTED","SCANING","CONNECTING","CONNECTED"};
++
++//     switch(pWlanEvent->Id)
++//     {
++//     case SL_WLAN_EVENT_CONNECT:
++//         /* set the string terminate */
++//         pWlanEvent->Data.Connect.SsidName[pWlanEvent->Data.Connect.SsidLen] =
++//                 '\0';
++//         LOG_INFO(" [Event] STA connected to AP "
++//                 "- BSSID:%.2x:%.2x:%.2x:%.2x:%.2x:%.2x, SSID:%s",
++//                 pWlanEvent->Data.Connect.Bssid[0],
++//                 pWlanEvent->Data.Connect.Bssid[1],
++//                 pWlanEvent->Data.Connect.Bssid[2],
++//                 pWlanEvent->Data.Connect.Bssid[3],
++//                 pWlanEvent->Data.Connect.Bssid[4],
++//                 pWlanEvent->Data.Connect.Bssid[5],
++//                 pWlanEvent->Data.Connect.SsidName);
++
++//         break;
++
++//     case SL_WLAN_EVENT_DISCONNECT:
++//         LOG_INFO(" [Event] STA disconnected from AP (Reason Code = %d)",
++//                  pWlanEvent->Data.Disconnect.ReasonCode);
++//         break;
++
++//     case SL_WLAN_EVENT_STA_ADDED:
++//         LOG_DEBUG(" [Event] New STA Addeed (MAC Address:  %.2x:%.2x:%.2x:%.2x:%.2x)",
++//                   pWlanEvent->Data.STAAdded.Mac[0],
++//                   pWlanEvent->Data.STAAdded.Mac[1],
++//                   pWlanEvent->Data.STAAdded.Mac[2],
++//                   pWlanEvent->Data.STAAdded.Mac[3],
++//                   pWlanEvent->Data.STAAdded.Mac[4],
++//                   pWlanEvent->Data.STAAdded.Mac[5]);
++//         break;
++
++//     case SL_WLAN_EVENT_STA_REMOVED:
++//         LOG_DEBUG(" [Event] STA Removed (MAC Address: %.2x:%.2x:%.2x:%.2x:%.2x)",
++//                   pWlanEvent->Data.STAAdded.Mac[0],
++//                   pWlanEvent->Data.STAAdded.Mac[1],
++//                   pWlanEvent->Data.STAAdded.Mac[2],
++//                   pWlanEvent->Data.STAAdded.Mac[3],
++//                   pWlanEvent->Data.STAAdded.Mac[4],
++//                   pWlanEvent->Data.STAAdded.Mac[5]);
++//         break;
++
++//     case SL_WLAN_EVENT_PROVISIONING_PROFILE_ADDED:
++//         LOG_DEBUG(" [Provisioning] Profile Added: SSID: %s",
++//                   pWlanEvent->Data.ProvisioningProfileAdded.Ssid);
++//         if(pWlanEvent->Data.ProvisioningProfileAdded.ReservedLen > 0)
++//         {
++//             LOG_DEBUG(" [Provisioning] Profile Added: PrivateToken:%s",
++//                       pWlanEvent->Data.ProvisioningProfileAdded.Reserved);
++//         }
++//         break;
++
++//     case SL_WLAN_EVENT_PROVISIONING_STATUS:
++//     {
++//         switch(pWlanEvent->Data.ProvisioningStatus.ProvisioningStatus)
++//         {
++//         case SL_WLAN_PROVISIONING_GENERAL_ERROR:
++//         case SL_WLAN_PROVISIONING_ERROR_ABORT:
++//         case SL_WLAN_PROVISIONING_ERROR_ABORT_INVALID_PARAM:
++//         case SL_WLAN_PROVISIONING_ERROR_ABORT_HTTP_SERVER_DISABLED:
++//         case SL_WLAN_PROVISIONING_ERROR_ABORT_PROFILE_LIST_FULL:
++//         case SL_WLAN_PROVISIONING_ERROR_ABORT_PROVISIONING_ALREADY_STARTED:
++//             LOG_DEBUG(" [Provisioning] Provisioning Error status=%d",
++//                       pWlanEvent->Data.ProvisioningStatus.ProvisioningStatus);
++//             break;
++
++//         case SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_FAIL_NETWORK_NOT_FOUND:
++//             LOG_DEBUG(" [Provisioning] Profile confirmation failed: "
++//                     "network not found");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_FAIL_CONNECTION_FAILED:
++//             LOG_DEBUG(" [Provisioning] Profile confirmation failed:"
++//                     " Connection failed");
++//             break;
++
++//         case
++//         SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_CONNECTION_SUCCESS_IP_NOT_ACQUIRED:
++//             LOG_DEBUG(" [Provisioning] Profile confirmation failed:"
++//                     " IP address not acquired");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_SUCCESS_FEEDBACK_FAILED:
++//             LOG_DEBUG(" [Provisioning] Profile Confirmation failed "
++//                     " (Connection Success, feedback to Smartphone app failed)");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_CONFIRMATION_STATUS_SUCCESS:
++//             LOG_DEBUG(" [Provisioning] Profile Confirmation Success!");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_AUTO_STARTED:
++//             LOG_DEBUG(" [Provisioning] Auto-Provisioning Started");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_STOPPED:
++//             LOG_DEBUG(" Provisioning stopped: Current Role: %s",
++//                       Roles[pWlanEvent->Data.ProvisioningStatus.Role]);
++//             if(ROLE_STA == pWlanEvent->Data.ProvisioningStatus.Role)
++//             {
++//                 LOG_DEBUG("WLAN Status: %s",
++//                           WlanStatus[pWlanEvent->Data.ProvisioningStatus.
++//                                      WlanStatus]);
++
++//                 if(SL_WLAN_STATUS_CONNECTED ==
++//                         pWlanEvent->Data.ProvisioningStatus.WlanStatus)
++//                 {
++//                     LOG_DEBUG("Connected to SSID: %s",
++//                               pWlanEvent->Data.ProvisioningStatus.Ssid);
++//                 }
++//             }
++//             break;
++
++//         case SL_WLAN_PROVISIONING_SMART_CONFIG_SYNCED:
++//             LOG_DEBUG(" [Provisioning] Smart Config Synced!");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_SMART_CONFIG_SYNC_TIMEOUT:
++//             LOG_DEBUG(" [Provisioning] Smart Config Sync Timeout!");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_CONFIRMATION_WLAN_CONNECT:
++//             LOG_DEBUG(
++//                     " [Provisioning] Profile confirmation: WLAN Connected!");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_CONFIRMATION_IP_ACQUIRED:
++//             LOG_DEBUG(
++//                     " [Provisioning] Profile confirmation: IP Acquired!");
++//             break;
++
++//         case SL_WLAN_PROVISIONING_EXTERNAL_CONFIGURATION_READY:
++//             LOG_DEBUG(" [Provisioning] External configuration is ready! ");
++//             /* [External configuration]: External configuration is ready,
++// start the external configuration process.
++//         In case of using the external provisioning
++// enable the function below which will trigger StartExternalProvisioning() */
++//             break;
++
++//         default:
++//             LOG_ERROR(" [Provisioning] Unknown Provisioning Status: %d",
++//                       pWlanEvent->Data.ProvisioningStatus.ProvisioningStatus);
++//             break;
++//         }
++//     }
++//     break;
++
++//     default:
++//         LOG_ERROR(" [Event] - WlanEventHandler has received %d !!!!",
++//                   pWlanEvent->Id);
++//         break;
++//     }
++// }
+ 
+ //*****************************************************************************
+ //
+@@ -526,10 +526,10 @@ enable the function below which will trigger StartExternalProvisioning() */
+ //! \return None
+ //!
+ //*****************************************************************************
+-void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
+-{
+-    LOG_ERROR("[NETAPP EVENT] Unhandled event [0x%x] ", pNetAppEvent->Id);
+-}
++// void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
++// {
++//     LOG_ERROR("[NETAPP EVENT] Unhandled event [0x%x] ", pNetAppEvent->Id);
++// }
+ 
+ //*****************************************************************************
+ //
+@@ -540,14 +540,14 @@ void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
+ //! \return None
+ //!
+ //*****************************************************************************
+-void SimpleLinkGeneralEventHandler(SlDeviceEvent_t *pDevEvent)
+-{
+-    /* Most of the general errors are not FATAL are are to be handled
+-appropriately by the application */
+-    LOG_DEBUG("[GENERAL EVENT] - ID=[%d] Sender=[%d]\n\n",
+-              pDevEvent->Data.Error.Code,
+-              pDevEvent->Data.Error.Source);
+-}
++// void SimpleLinkGeneralEventHandler(SlDeviceEvent_t *pDevEvent)
++// {
++//     /* Most of the general errors are not FATAL are are to be handled
++// appropriately by the application */
++//     LOG_DEBUG("[GENERAL EVENT] - ID=[%d] Sender=[%d]\n\n",
++//               pDevEvent->Data.Error.Code,
++//               pDevEvent->Data.Error.Source);
++// }
+ 
+ //*****************************************************************************
+ //
+@@ -558,53 +558,53 @@ appropriately by the application */
+ //! \return None
+ //!
+ //*****************************************************************************
+-void SimpleLinkFatalErrorEventHandler(SlDeviceFatal_t *slFatalErrorEvent)
+-{
+-
+-    switch (slFatalErrorEvent->Id)
+-    {
+-    case SL_DEVICE_EVENT_FATAL_DEVICE_ABORT:
+-    {
+-        LOG_ERROR("FATAL ERROR: Abort NWP event detected: "
+-                "AbortType=%d, AbortData=0x%x\n\r",
+-                slFatalErrorEvent->Data.DeviceAssert.Code,
+-                slFatalErrorEvent->Data.DeviceAssert.Value);
+-    }
+-    break;
+-
+-    case SL_DEVICE_EVENT_FATAL_DRIVER_ABORT:
+-    {
+-        LOG_ERROR("FATAL ERROR: Driver Abort detected\n\r");
+-    }
+-    break;
+-
+-    case SL_DEVICE_EVENT_FATAL_NO_CMD_ACK:
+-    {
+-        LOG_ERROR("FATAL ERROR: No Cmd Ack detected "
+-                "[cmd opcode = 0x%x]\n\r",
+-                slFatalErrorEvent->Data.NoCmdAck.Code);
+-    }
+-    break;
+-
+-    case SL_DEVICE_EVENT_FATAL_SYNC_LOSS:
+-    {
+-        LOG_ERROR("FATAL ERROR: Sync loss detected\n\r");
+-    }
+-    break;
+-
+-    case SL_DEVICE_EVENT_FATAL_CMD_TIMEOUT:
+-    {
+-        LOG_ERROR("FATAL ERROR: Async event timeout detected "
+-                "[event opcode = 0x%x]\n\r",
+-                slFatalErrorEvent->Data.CmdTimeout.Code);
+-    }
+-    break;
+-
+-    default:
+-        LOG_ERROR("FATAL ERROR: Unspecified error detected\n\r");
+-        break;
+-    }
+-}
++// void SimpleLinkFatalErrorEventHandler(SlDeviceFatal_t *slFatalErrorEvent)
++// {
++
++//     switch (slFatalErrorEvent->Id)
++//     {
++//     case SL_DEVICE_EVENT_FATAL_DEVICE_ABORT:
++//     {
++//         LOG_ERROR("FATAL ERROR: Abort NWP event detected: "
++//                 "AbortType=%d, AbortData=0x%x\n\r",
++//                 slFatalErrorEvent->Data.DeviceAssert.Code,
++//                 slFatalErrorEvent->Data.DeviceAssert.Value);
++//     }
++//     break;
++
++//     case SL_DEVICE_EVENT_FATAL_DRIVER_ABORT:
++//     {
++//         LOG_ERROR("FATAL ERROR: Driver Abort detected\n\r");
++//     }
++//     break;
++
++//     case SL_DEVICE_EVENT_FATAL_NO_CMD_ACK:
++//     {
++//         LOG_ERROR("FATAL ERROR: No Cmd Ack detected "
++//                 "[cmd opcode = 0x%x]\n\r",
++//                 slFatalErrorEvent->Data.NoCmdAck.Code);
++//     }
++//     break;
++
++//     case SL_DEVICE_EVENT_FATAL_SYNC_LOSS:
++//     {
++//         LOG_ERROR("FATAL ERROR: Sync loss detected\n\r");
++//     }
++//     break;
++
++//     case SL_DEVICE_EVENT_FATAL_CMD_TIMEOUT:
++//     {
++//         LOG_ERROR("FATAL ERROR: Async event timeout detected "
++//                 "[event opcode = 0x%x]\n\r",
++//                 slFatalErrorEvent->Data.CmdTimeout.Code);
++//     }
++//     break;
++
++//     default:
++//         LOG_ERROR("FATAL ERROR: Unspecified error detected\n\r");
++//         break;
++//     }
++// }
+ 
+ 
+ __attribute__((weak)) void SimpleLinkSockEventHandler(SlSockEvent_t * pSock)
+diff --git a/platforms/ns/lwip/tcpip_if.c b/platforms/ns/lwip/tcpip_if.c
+index f70a878..b26de5a 100644
+--- a/platforms/ns/lwip/tcpip_if.c
++++ b/platforms/ns/lwip/tcpip_if.c
+@@ -75,7 +75,7 @@
+ #undef DEBUG_IF_NAME
+ #undef DEBUG_IF_SEVERITY
+ #define DEBUG_IF_NAME     "TCPIP_IF"
+-#define DEBUG_IF_SEVERITY E_INFO
++#define DEBUG_IF_SEVERITY E_TRACE //E_INFO
+ 
+ 
+ #define ETH_MAX_PAYLOAD 1514
+@@ -302,15 +302,41 @@ static void LwipCB_linkDownDeferred(void *hNewif)
+     m_bLinkUp = false;
+ }
+ 
++uint8_t coalesceBuf[2048];
++ 
+ static err_t LwipCB_wifiSend(struct netif *pNetif, struct pbuf * p)
+ {
++ 
++///
++      struct pbuf * partialPkt;
++      int offset = 0;
++ 
++ 
++      if (p->len != p->tot_len) {
++//          for(;;);
++      }
++ 
++      for (partialPkt = p; partialPkt != NULL; partialPkt = partialPkt->next)
++      {
++          if (offset + partialPkt->len > 1544)
++          {
++              while (1)
++                  ;
++          }
++          memcpy(coalesceBuf + offset, partialPkt->payload, partialPkt->len);
++          offset += partialPkt->len;
++      }
++ 
++ 
+     if(netif_is_up(pNetif))
+     {
+-        assert(m_fSendCallback); 
+-        m_fSendCallback(pNetif, p->payload, p->len, 0);
++        assert(m_fSendCallback);
++//      m_fSendCallback(pNetif, p->payload, p->len, 0);
++        m_fSendCallback(pNetif, coalesceBuf, p->tot_len, 0);
+     }
+     return (err_t) ERR_OK;
+ }
++ 
+ 
+ int TCPIP_IF_init(EvtCallback_f fEvtCallback, unsigned char bStackInit)
+ {
+diff --git a/source/third_party/mbedtls/ti/port/entropy_alt.c b/source/third_party/mbedtls/ti/port/entropy_alt.c
+index 16fe0f1..ecf08c0 100644
+--- a/source/third_party/mbedtls/ti/port/entropy_alt.c
++++ b/source/third_party/mbedtls/ti/port/entropy_alt.c
+@@ -118,19 +118,19 @@ int entropy_poll(void *data, unsigned char *output, size_t len, size_t *olen)
+ }
+ 
+ 
+-psa_status_t mbedtls_psa_external_get_random( mbedtls_psa_external_random_context_t *context,
+-                                                uint8_t *output,
+-                                                size_t output_size, 
+-                                                size_t *output_length)
+-{
+-    int status;
+-    unsigned short length;
+-    length = (unsigned short)output_size;
+-    status = sl_NetUtilGet(SL_NETUTIL_TRUE_RANDOM,0,output,&(length));
+-    if (status==0)
+-    {
+-        *output_length = output_size;
+-    }
+-    return status;
+-}
++// psa_status_t mbedtls_psa_external_get_random( mbedtls_psa_external_random_context_t *context,
++//                                                 uint8_t *output,
++//                                                 size_t output_size, 
++//                                                 size_t *output_length)
++// {
++//     int status;
++//     unsigned short length;
++//     length = (unsigned short)output_size;
++//     status = sl_NetUtilGet(SL_NETUTIL_TRUE_RANDOM,0,output,&(length));
++//     if (status==0)
++//     {
++//         *output_length = output_size;
++//     }
++//     return status;
++// }
+ //-------------------------------------------------------------------------
+\ No newline at end of file
+diff --git a/source/third_party/mbedtls/ti/port/entropy_alt.h b/source/third_party/mbedtls/ti/port/entropy_alt.h
+index ef2cefc..500ad05 100644
+--- a/source/third_party/mbedtls/ti/port/entropy_alt.h
++++ b/source/third_party/mbedtls/ti/port/entropy_alt.h
+@@ -30,14 +30,14 @@ extern "C" {
+  *  recommended that the application provide a strong implementation of this
+  *  API.
+  */
+-#include "psa/crypto_se_driver.h"
+-#include <psa/crypto_types.h>
++// #include "psa/crypto_se_driver.h"
++// #include <psa/crypto_types.h>
+ int mbedtls_platform_entropy_poll(void *data, unsigned char *output, size_t len);
+ int entropy_poll(void *data, unsigned char *output, size_t len, size_t *olen);
+-psa_status_t mbedtls_psa_external_get_random( mbedtls_psa_external_random_context_t *context,
+-                                                uint8_t *output,
+-                                                size_t output_size, 
+-                                                size_t *output_length);
++// psa_status_t mbedtls_psa_external_get_random( mbedtls_psa_external_random_context_t *context,
++//                                                 uint8_t *output,
++//                                                 size_t output_size, 
++//                                                 size_t *output_length);
+ #ifdef __cplusplus
+ }
+ #endif
