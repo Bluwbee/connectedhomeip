@@ -47,14 +47,37 @@
 #define LWIP_SO_RCVTIMEO 0
 #define SO_REUSE (1)
 #define LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS (1)
-#define LWIP_STATS (0)
+#define LWIP_STATS (1)
 #define LWIP_TCPIP_CORE_LOCKING 1
 #define TCP_QUEUE_OOSEQ 0
 #define ARP_QUEUEING (0)
 #define TCPIP_THREAD_NAME "LWIP"
 
+#define MEMP_NUM_TCPIP_MSG_INPKT (24)
+
 #define LWIP_NETIF_LINK_CALLBACK 1
 #define LWIP_NETIF_STATUS_CALLBACK 1
+
+#define LINK_STATS                      1
+#define ETHARP_STATS                    1
+#define IP_STATS                        1
+#define IPFRAG_STATS                    1
+#define ICMP_STATS                      1
+#define IGMP_STATS                      1
+#define UDP_STATS                       1
+#define TCP_STATS                       1
+#define MEM_STATS                       1
+#define MEMP_STATS                      1
+#define SYS_STATS                       1
+#define LWIP_STATS_DISPLAY              0
+#define IP6_STATS                       1
+#define ICMP6_STATS                     1
+#define IP6_FRAG_STATS                  1
+#define MLD6_STATS                      1
+#define ND6_STATS                       1
+#define MIB2_STATS                      1
+#define IP_NAPT_STATS                   1
+
 
 #define LWIP_SOCKET 1
 
@@ -126,7 +149,7 @@
 #define MEMP_SEPARATE_POOLS (1)
 #define LWIP_PBUF_FROM_CUSTOM_POOLS (0)
 #define MEMP_USE_CUSTOM_POOLS (0)
-#define PBUF_POOL_SIZE (32)
+#define PBUF_POOL_SIZE (24)
 #define PBUF_POOL_BUFSIZE (1600)
 #define PBUF_POOL_SIZE_LARGE (3)
 #define PBUF_POOL_SIZE_MEDIUM (4)
@@ -158,10 +181,10 @@
 
 #define LWIP_MULTICAST_PING 0
 
-#define TCPIP_MBOX_SIZE 6
-#define DEFAULT_RAW_RECVMBOX_SIZE 6
-#define DEFAULT_UDP_RECVMBOX_SIZE 6
-#define DEFAULT_TCP_RECVMBOX_SIZE 6
+#define TCPIP_MBOX_SIZE 32
+// #define DEFAULT_RAW_RECVMBOX_SIZE 6
+// #define DEFAULT_UDP_RECVMBOX_SIZE 6
+// #define DEFAULT_TCP_RECVMBOX_SIZE 6
 
 // TODO: make LWIP_DEBUG conditional on build type
 
@@ -171,6 +194,9 @@
 
 #define MEMP_OVERFLOW_CHECK (1)
 #define MEMP_SANITY_CHECK (1)
+// #define MEM_DEBUG (LWIP_DBG_ON)
+// #define MEMP_DEBUG (LWIP_DBG_ON)
+// #define PBUF_DEBUG (LWIP_DBG_ON)
 #define MEM_DEBUG (LWIP_DBG_OFF)
 #define MEMP_DEBUG (LWIP_DBG_OFF)
 #define PBUF_DEBUG (LWIP_DBG_OFF)
