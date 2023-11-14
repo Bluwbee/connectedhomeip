@@ -32,7 +32,7 @@
 #define SYS_MBOX_NULL ((xQueueHandle) NULL)
 #define SYS_SEM_NULL ((xSemaphoreHandle) NULL)
 #define SYS_DEFAULT_THREAD_STACK_DEPTH configMINIMAL_STACK_SIZE
-#define SYS_MESG_QUEUE_LENGTH ((UBaseType_t) 6)
+#define SYS_MESG_QUEUE_LENGTH ((UBaseType_t) 32)
 #define SYS_POST_BLOCK_TIME_MS 10000
 
 typedef QueueHandle_t sys_mbox_t;

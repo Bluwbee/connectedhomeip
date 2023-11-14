@@ -55,7 +55,7 @@ supported, or if both static and dynamic allocation are supported. */
 #define configMINIMAL_STACK_SIZE ((unsigned short) 256) // changed from 128
 #define configMAX_TASK_NAME_LEN (12)
 
-#define configTOTAL_HEAP_SIZE ((size_t) (0x10000)) // inreased from 0xe000
+#define configTOTAL_HEAP_SIZE ((size_t) (0x15800)) // inreased from 0xe000
 
 /* Idle task stack size in words */
 #define configIDLE_TASK_STACK_DEPTH (configMINIMAL_STACK_SIZE * 2)
@@ -149,7 +149,8 @@ supported, or if both static and dynamic allocation are supported. */
 #define INCLUDE_vTaskSuspend 1
 #define INCLUDE_vTaskDelayUntil 1
 #define INCLUDE_vTaskDelay 1
-#define INCLUDE_uxTaskGetStackHighWaterMark 0
+#define INCLUDE_uxTaskGetStackHighWaterMark 1
+#define INCLUDE_uxTaskGetStackHighWaterMark2 1
 #define INCLUDE_xTaskGetIdleTaskHandle 0
 #define INCLUDE_eTaskGetState 1
 #define INCLUDE_xTaskResumeFromISR 0

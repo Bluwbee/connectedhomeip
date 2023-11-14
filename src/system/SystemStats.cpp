@@ -120,8 +120,8 @@ void UpdateLwipPbufCounts(void)
 
 #else // LWIP_PBUF_FROM_CUSTOM_POOLS
 
-    chip::System::Stats::GetResourcesInUse()[kSystemLayer_NumPacketBufs] = MEMP_STATS_GET(used, MEMP_PBUF_POOL);
-    chip::System::Stats::GetHighWatermarks()[kSystemLayer_NumPacketBufs] = MEMP_STATS_GET(max, MEMP_PBUF_POOL);
+    // chip::System::Stats::GetResourcesInUse()[kSystemLayer_NumPacketBufs] = MEMP_STATS_GET(used, MEMP_PBUF_POOL);
+    // chip::System::Stats::GetHighWatermarks()[kSystemLayer_NumPacketBufs] = MEMP_STATS_GET(max, MEMP_PBUF_POOL);
 
 #endif // LWIP_PBUF_FROM_CUSTOM_POOLS
 }
