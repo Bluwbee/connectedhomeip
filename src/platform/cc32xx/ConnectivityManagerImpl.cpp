@@ -139,7 +139,7 @@ CHIP_ERROR ConnectivityManagerImpl::_Init()
    void *hWifiConn;
     
    cc32xxLog("Start Wi-Fi");
-   WIFI_IF_start(_OnWifiEvent, WIFI_SERVICE_LVL_MAC, 0xffff, &hWifiConn);
+//    WIFI_IF_start(_OnWifiEvent, WIFI_SERVICE_LVL_MAC, 0xffff, &hWifiConn);
    /* Try to connect to AP and go through provisioning (if needed) */
    
     return CHIP_NO_ERROR;
