@@ -467,7 +467,7 @@ index dc87582..d3560ea 100644
  
  __attribute__((weak)) void SimpleLinkSockEventHandler(SlSockEvent_t * pSock)
 diff --git a/platforms/ns/lwip/tcpip_if.c b/platforms/ns/lwip/tcpip_if.c
-index f70a878..b26de5a 100644
+index f70a878..55f6007 100644
 --- a/platforms/ns/lwip/tcpip_if.c
 +++ b/platforms/ns/lwip/tcpip_if.c
 @@ -75,7 +75,7 @@
@@ -523,3 +523,102 @@ index f70a878..b26de5a 100644
  
  int TCPIP_IF_init(EvtCallback_f fEvtCallback, unsigned char bStackInit)
  {
+@@ -436,10 +462,31 @@ int   TCPIP_IF_receive(void *hPkt, int pktLen, void *hNetif)
+     struct pbuf *pPkt = (struct pbuf *)hPkt;
+ #else
+     struct pbuf *pPkt =  pbuf_alloc(PBUF_LINK, pktLen, PBUF_POOL);
+-    memcpy(pPkt->payload, hPkt ,pktLen);
++    if(pPkt)
++    {
++        if(pPkt->tot_len != pPkt->len)
++        {
++            LOG_ERROR("Fragmented pbuf");
++            while(1);
++        }
++        memcpy(pPkt->payload, hPkt ,pktLen);
++    }
++    else
++    {
++        LOG_ERROR("Failed to allocate pbuf");
++        while(1);
++    }
+ #endif
+     pPkt->len = pktLen;
+     pPkt->tot_len = pktLen;
+-    return pNetif->input(pPkt, hNetif);
++   int stat = pNetif->input(pPkt, hNetif);
++   if(stat != 0)
++   {
++        LOG_ERROR("Failed to input packet");
++        while(1);
++        free(pPkt);
++   }
++
++   return stat;
+ }
+ 
+diff --git a/source/third_party/mbedtls/ti/port/entropy_alt.c b/source/third_party/mbedtls/ti/port/entropy_alt.c
+index 16fe0f1..ecf08c0 100644
+--- a/source/third_party/mbedtls/ti/port/entropy_alt.c
++++ b/source/third_party/mbedtls/ti/port/entropy_alt.c
+@@ -118,19 +118,19 @@ int entropy_poll(void *data, unsigned char *output, size_t len, size_t *olen)
+ }
+ 
+ 
+-psa_status_t mbedtls_psa_external_get_random( mbedtls_psa_external_random_context_t *context,
+-                                                uint8_t *output,
+-                                                size_t output_size, 
+-                                                size_t *output_length)
+-{
+-    int status;
+-    unsigned short length;
+-    length = (unsigned short)output_size;
+-    status = sl_NetUtilGet(SL_NETUTIL_TRUE_RANDOM,0,output,&(length));
+-    if (status==0)
+-    {
+-        *output_length = output_size;
+-    }
+-    return status;
+-}
++// psa_status_t mbedtls_psa_external_get_random( mbedtls_psa_external_random_context_t *context,
++//                                                 uint8_t *output,
++//                                                 size_t output_size, 
++//                                                 size_t *output_length)
++// {
++//     int status;
++//     unsigned short length;
++//     length = (unsigned short)output_size;
++//     status = sl_NetUtilGet(SL_NETUTIL_TRUE_RANDOM,0,output,&(length));
++//     if (status==0)
++//     {
++//         *output_length = output_size;
++//     }
++//     return status;
++// }
+ //-------------------------------------------------------------------------
+\ No newline at end of file
+diff --git a/source/third_party/mbedtls/ti/port/entropy_alt.h b/source/third_party/mbedtls/ti/port/entropy_alt.h
+index ef2cefc..500ad05 100644
+--- a/source/third_party/mbedtls/ti/port/entropy_alt.h
++++ b/source/third_party/mbedtls/ti/port/entropy_alt.h
+@@ -30,14 +30,14 @@ extern "C" {
+  *  recommended that the application provide a strong implementation of this
+  *  API.
+  */
+-#include "psa/crypto_se_driver.h"
+-#include <psa/crypto_types.h>
++// #include "psa/crypto_se_driver.h"
++// #include <psa/crypto_types.h>
+ int mbedtls_platform_entropy_poll(void *data, unsigned char *output, size_t len);
+ int entropy_poll(void *data, unsigned char *output, size_t len, size_t *olen);
+-psa_status_t mbedtls_psa_external_get_random( mbedtls_psa_external_random_context_t *context,
+-                                                uint8_t *output,
+-                                                size_t output_size, 
+-                                                size_t *output_length);
++// psa_status_t mbedtls_psa_external_get_random( mbedtls_psa_external_random_context_t *context,
++//                                                 uint8_t *output,
++//                                                 size_t output_size, 
++//                                                 size_t *output_length);
+ #ifdef __cplusplus
+ }
+ #endif
