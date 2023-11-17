@@ -136,7 +136,7 @@ CHIP_ERROR ConnectivityManagerImpl::_GetAndLogWifiStatsCounters(void)
 
 CHIP_ERROR ConnectivityManagerImpl::_Init()
 {
-   void *hWifiConn;
+//   void *hWifiConn;
     
    cc32xxLog("Start Wi-Fi");
 //    WIFI_IF_start(_OnWifiEvent, WIFI_SERVICE_LVL_MAC, 0xffff, &hWifiConn);
