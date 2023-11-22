@@ -467,7 +467,7 @@ index dc87582..d3560ea 100644
  
  __attribute__((weak)) void SimpleLinkSockEventHandler(SlSockEvent_t * pSock)
 diff --git a/platforms/ns/lwip/tcpip_if.c b/platforms/ns/lwip/tcpip_if.c
-index f70a878..b7ec3e4 100644
+index f70a878..928d696 100644
 --- a/platforms/ns/lwip/tcpip_if.c
 +++ b/platforms/ns/lwip/tcpip_if.c
 @@ -75,7 +75,7 @@
@@ -479,7 +479,7 @@ index f70a878..b7ec3e4 100644
  
  
  #define ETH_MAX_PAYLOAD 1514
-@@ -302,12 +302,39 @@ static void LwipCB_linkDownDeferred(void *hNewif)
+@@ -302,12 +302,41 @@ static void LwipCB_linkDownDeferred(void *hNewif)
      m_bLinkUp = false;
  }
  
@@ -487,24 +487,26 @@ index f70a878..b7ec3e4 100644
 +
  static err_t LwipCB_wifiSend(struct netif *pNetif, struct pbuf * p)
  {
-+    LOG_INFO("LwipCB_wifiSend");
 +///
 +      struct pbuf * partialPkt;
 +      int offset = 0;
 +
 +
-+      if (p->len != p->tot_len) {
-+            LOG_ERROR("p->len != p->tot_len !!!"); 
-+//          for(;;);
-+      }
++    //   if (p->len != p->tot_len) {
++    //        for(;;) {
++    //             LOG_ERROR("p->len != p->tot_len !!!, p->len=%d, p->tot_len=%d", p->len, p->tot_len);
++    //             sleep(1);
++    //         }
++    //   }
 +
 +      for (partialPkt = p; partialPkt != NULL; partialPkt = partialPkt->next)
 +      {
 +          if (offset + partialPkt->len > 1544)
 +          {
-+              LOG_ERROR("offset + partialPkt->len > 1544 !!!");
-+              while (1)
-+                  ;
++              for(;;) {
++                LOG_ERROR("offset + partialPkt->len > 1544 !!!");
++                sleep(1);
++              }
 +          }
 +          memcpy(coalesceBuf + offset, partialPkt->payload, partialPkt->len);
 +          offset += partialPkt->len;
@@ -520,7 +522,7 @@ index f70a878..b7ec3e4 100644
      }
      return (err_t) ERR_OK;
  }
-@@ -381,11 +408,13 @@ int TCPIP_IF_setInterfaceState(void *hNetIf, TcpipInterfaceState_e state)
+@@ -381,11 +410,13 @@ int TCPIP_IF_setInterfaceState(void *hNetIf, TcpipInterfaceState_e state)
  {
      if (state == E_TCPIP_IF_UP)
      {
@@ -534,7 +536,7 @@ index f70a878..b7ec3e4 100644
          LOG_DEBUG("[TCPIP_IF_setInterfaceState] I/F - DOWN!");
          tcpip_callback(LwipCB_interfaceDownDeferred, hNetIf);
      }
-@@ -401,6 +430,7 @@ int TCPIP_IF_notifyLinkChange(void *hNetIf, TcpipLinkState_e state)
+@@ -401,6 +432,7 @@ int TCPIP_IF_notifyLinkChange(void *hNetIf, TcpipLinkState_e state)
      }
      else
      {
@@ -542,7 +544,7 @@ index f70a878..b7ec3e4 100644
          LOG_DEBUG("[TCPIP_IF_notifyLinkChange] I/F - DISCONNECTED!");
          tcpip_callback(LwipCB_linkDownDeferred, hNetIf);
      }
-@@ -431,15 +461,83 @@ int   TCPIP_IF_pktLength(void *hPkt)
+@@ -431,15 +463,84 @@ int   TCPIP_IF_pktLength(void *hPkt)
  
  int   TCPIP_IF_receive(void *hPkt, int pktLen, void *hNetif)
  {
@@ -623,6 +625,7 @@ index f70a878..b7ec3e4 100644
 +    ret = pNetif->input(pPkt, hNetif);
 +
 +    if (ret != 0) {
++        LOG_ERROR("[TCPIP_IF_receive] pNetif->input failed !!!");
 +        pbuf_free(pPkt);
 +    }
 +    return (ret);
