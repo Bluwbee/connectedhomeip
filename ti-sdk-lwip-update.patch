@@ -467,7 +467,7 @@ index dc87582..d3560ea 100644
  
  __attribute__((weak)) void SimpleLinkSockEventHandler(SlSockEvent_t * pSock)
 diff --git a/platforms/ns/lwip/tcpip_if.c b/platforms/ns/lwip/tcpip_if.c
-index f70a878..55f6007 100644
+index f70a878..b7ec3e4 100644
 --- a/platforms/ns/lwip/tcpip_if.c
 +++ b/platforms/ns/lwip/tcpip_if.c
 @@ -75,7 +75,7 @@
@@ -475,86 +475,157 @@ index f70a878..55f6007 100644
  #undef DEBUG_IF_SEVERITY
  #define DEBUG_IF_NAME     "TCPIP_IF"
 -#define DEBUG_IF_SEVERITY E_INFO
-+#define DEBUG_IF_SEVERITY E_TRACE //E_INFO
++#define DEBUG_IF_SEVERITY E_TRACE
  
  
  #define ETH_MAX_PAYLOAD 1514
-@@ -302,15 +302,41 @@ static void LwipCB_linkDownDeferred(void *hNewif)
+@@ -302,12 +302,39 @@ static void LwipCB_linkDownDeferred(void *hNewif)
      m_bLinkUp = false;
  }
  
 +uint8_t coalesceBuf[2048];
-+ 
++
  static err_t LwipCB_wifiSend(struct netif *pNetif, struct pbuf * p)
  {
-+ 
++    LOG_INFO("LwipCB_wifiSend");
 +///
 +      struct pbuf * partialPkt;
 +      int offset = 0;
-+ 
-+ 
++
++
 +      if (p->len != p->tot_len) {
++            LOG_ERROR("p->len != p->tot_len !!!"); 
 +//          for(;;);
 +      }
-+ 
++
 +      for (partialPkt = p; partialPkt != NULL; partialPkt = partialPkt->next)
 +      {
 +          if (offset + partialPkt->len > 1544)
 +          {
++              LOG_ERROR("offset + partialPkt->len > 1544 !!!");
 +              while (1)
 +                  ;
 +          }
 +          memcpy(coalesceBuf + offset, partialPkt->payload, partialPkt->len);
 +          offset += partialPkt->len;
 +      }
-+ 
-+ 
++
++
      if(netif_is_up(pNetif))
      {
--        assert(m_fSendCallback); 
+         assert(m_fSendCallback); 
 -        m_fSendCallback(pNetif, p->payload, p->len, 0);
-+        assert(m_fSendCallback);
 +//      m_fSendCallback(pNetif, p->payload, p->len, 0);
 +        m_fSendCallback(pNetif, coalesceBuf, p->tot_len, 0);
      }
      return (err_t) ERR_OK;
  }
-+ 
- 
- int TCPIP_IF_init(EvtCallback_f fEvtCallback, unsigned char bStackInit)
+@@ -381,11 +408,13 @@ int TCPIP_IF_setInterfaceState(void *hNetIf, TcpipInterfaceState_e state)
  {
-@@ -436,10 +462,31 @@ int   TCPIP_IF_receive(void *hPkt, int pktLen, void *hNetif)
+     if (state == E_TCPIP_IF_UP)
+     {
++        //LED_setOn(gLedBlueHandle, LED_BRIGHTNESS_MAX);
+         LOG_DEBUG("[TCPIP_IF_setInterfaceState] I/F - UP!");
+         tcpip_callback(LwipCB_interfaceUpDeferred, hNetIf);
+     }
+     else
+     {
++        //LED_setOff(gLedBlueHandle);
+         LOG_DEBUG("[TCPIP_IF_setInterfaceState] I/F - DOWN!");
+         tcpip_callback(LwipCB_interfaceDownDeferred, hNetIf);
+     }
+@@ -401,6 +430,7 @@ int TCPIP_IF_notifyLinkChange(void *hNetIf, TcpipLinkState_e state)
+     }
+     else
+     {
++        //LED_setOff(gLedBlueHandle);
+         LOG_DEBUG("[TCPIP_IF_notifyLinkChange] I/F - DISCONNECTED!");
+         tcpip_callback(LwipCB_linkDownDeferred, hNetIf);
+     }
+@@ -431,15 +461,83 @@ int   TCPIP_IF_pktLength(void *hPkt)
+ 
+ int   TCPIP_IF_receive(void *hPkt, int pktLen, void *hNetif)
+ {
++    int ret = 0;
++
+     struct netif *pNetif = (struct netif*)hNetif;
+ #ifdef TCPIP_IF_ZERO_COPY
      struct pbuf *pPkt = (struct pbuf *)hPkt;
  #else
      struct pbuf *pPkt =  pbuf_alloc(PBUF_LINK, pktLen, PBUF_POOL);
--    memcpy(pPkt->payload, hPkt ,pktLen);
-+    if(pPkt)
-+    {
-+        if(pPkt->tot_len != pPkt->len)
-+        {
-+            LOG_ERROR("Fragmented pbuf");
-+            while(1);
++
++
++    if (pPkt == NULL) {
++        for(;;) {
++            LOG_ERROR("[TCPIP_IF_receive] out of Link BUFS !!!");
++            sleep(1);
 +        }
-+        memcpy(pPkt->payload, hPkt ,pktLen);
 +    }
-+    else
-+    {
-+        LOG_ERROR("Failed to allocate pbuf");
-+        while(1);
++
++
++#if 0
++    // Don't support fragmented pbufs
++    // sanity check in-case we can fragmented PBUF
++    if (pPkt->tot_len != pPkt->len) {
++        for(;;) {
++            LOG_DEBUG("[TCPIP_IF_receive] pPkt->tot_len != pPkt->len !!!");
++            sleep(1);
++        }
 +    }
- #endif
++
+     memcpy(pPkt->payload, hPkt ,pktLen);
+-#endif
++
++    // Is this needed - shouldn't be??
      pPkt->len = pktLen;
      pPkt->tot_len = pktLen;
 -    return pNetif->input(pPkt, hNetif);
-+   int stat = pNetif->input(pPkt, hNetif);
-+   if(stat != 0)
-+   {
-+        LOG_ERROR("Failed to input packet");
-+        while(1);
-+        free(pPkt);
-+   }
 +
-+   return stat;
++#else
++    // support fragmented pbufs
++
++    struct pbuf *tempPkt = pPkt;
++
++    // If this not fragmented, then just copy the whole packet.
++    if (tempPkt->len == pktLen) {
++        memcpy(tempPkt->payload, hPkt, pktLen);
++    }
++    else if (tempPkt->tot_len == pktLen) {
++        // Copy in chunks into the pbufs
++        unsigned char *src = hPkt;
++        unsigned int sizeCopied = 0;
++
++        while (tempPkt != 0) {
++            memcpy(tempPkt->payload, src, tempPkt->len);
++            sizeCopied += tempPkt->len; // better to use remaining len?
++            src += tempPkt->len;
++            tempPkt = tempPkt->next;
++        }
++
++        // check
++        if (sizeCopied != pktLen) {
++            for(;;) {
++                LOG_ERROR("[TCPIP_IF_receive] sizeCopied != pktLen !!!");
++                sleep(1);
++            }
++        }
++    }
++    // first ensure that pbuf is big enough
++    else { //(pPkt->tot_len != pktLen)
++        for(;;) {
++            LOG_ERROR("[TCPIP_IF_receive] pPkt->tot_len != pktLen !!!");
++            sleep(1);
++        }
++    }
++#endif
++
++#endif
++    ret = pNetif->input(pPkt, hNetif);
++
++    if (ret != 0) {
++        pbuf_free(pPkt);
++    }
++    return (ret);
  }
  
 diff --git a/source/third_party/mbedtls/ti/port/entropy_alt.c b/source/third_party/mbedtls/ti/port/entropy_alt.c
