@@ -82,6 +82,11 @@
 
 #define CHIP_CONFIG_ENABLE_SERVER_IM_EVENT 1
 
+// Limit the number of device admins to ensure enough ressources for handling them
+#ifndef CHIP_CONFIG_MAX_FABRICS
+#define CHIP_CONFIG_MAX_FABRICS 5
+#endif
+
 // ==================== General Configuration Overrides ====================
 
 /* none yet */
