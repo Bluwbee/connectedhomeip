@@ -152,7 +152,7 @@
 //#define PBUF_POOL_SIZE (70)
 //#define PBUF_POOL_BUFSIZE (256)
 //#define MEM_SIZE        4096
-#define PBUF_POOL_SIZE (24)
+#define PBUF_POOL_SIZE (17)
 #define PBUF_POOL_BUFSIZE (1600)
 #define PBUF_POOL_SIZE_LARGE (3)
 #define PBUF_POOL_SIZE_MEDIUM (4)
