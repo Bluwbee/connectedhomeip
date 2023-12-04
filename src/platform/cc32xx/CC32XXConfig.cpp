@@ -216,9 +216,11 @@ public:
     uint8_t * SerializeLinkedList(uint16_t * length)
     {
         uint8_t * list                = new uint8_t[8192];
+        memset(list, 0xFF, 8192);
+
         CC32XXKVSEntry * currentEntry = mPHead;
         uint16_t bufferLength         = 0;
-
+        /* Todo: check we are not writing paste the 8K */
         while (currentEntry != NULL)
         {
             // copy key length
@@ -240,7 +242,7 @@ public:
             bufferLength += currentEntry->Len();
 
             currentEntry = currentEntry->mPNext;
-        }
+        }        
 
         *length = bufferLength;
 
@@ -256,6 +258,13 @@ public:
         {
             // read in key length
             uint8_t keyLen = list[currentLength];
+
+            /* this is a hack, the file is FF's after the last key 
+               Need a better way to fix this. */
+            if (keyLen == 0xFF )
+            {
+                break;
+            }
             currentLength++;
 
             // read in key
@@ -432,8 +441,8 @@ CHIP_ERROR CC32XXConfig::FactoryResetConfig()
 {
     cc32xxLog("[%s] ", __FUNCTION__);
 
-    while (true)
-        ;
+    WriteKVSToNV();
+
     CHIP_ERROR err = CHIP_NO_ERROR;
     return err;
 }
@@ -504,15 +513,22 @@ CHIP_ERROR CC32XXConfig::ReadKVS(const char * key, void * value, size_t value_si
     return err;
 }
 
+extern "C" {
+    extern size_t xPortGetFreeHeapSize( void );
+}
+
 CHIP_ERROR CC32XXConfig::WriteKVSToNV()
 {
+    cc32xxLog("WriteKVSToNV++ len %d, xFreeBytesRemaining %d", NVBufferLength, xPortGetFreeHeapSize());
+
     uint8_t * list = pList->SerializeLinkedList(&NVBufferLength);
 
     uint32_t token = KVS_TOKEN;
 
     uint32_t fileSystemFlags = SL_FS_CREATE_STATIC_TOKEN | SL_FS_CREATE_VENDOR_TOKEN;
 
-    int ret = FILE_write(listName, NVBufferLength, list, &token, fileSystemFlags);
+    /* File is created in the first write, whcih is not large enough to fit the linked list */
+    int ret = FILE_write(listName, 8192 /* NVBufferLength */, list, &token, fileSystemFlags);
     if (ret < 0)
     {
         cc32xxLog("could not write in Linked List to NV, error %d", ret);
@@ -523,6 +539,7 @@ CHIP_ERROR CC32XXConfig::WriteKVSToNV()
     else
     {
         delete(list);
+        cc32xxLog("WriteKVSToNV--, xFreeBytesRemaining %d", xPortGetFreeHeapSize());
         return CHIP_NO_ERROR;
     }
     // return error
