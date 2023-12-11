@@ -74,6 +74,8 @@ public:
 
     CC32XXKVSEntry(char * key, const uint8_t * pBuf, uint16_t len)
     {
+        cc32xxLog("[%s] Create KVS Entry (%s)", __FUNCTION__, key);
+
         Platform::CopyString(mKey, key);
 
         mValueLen = len;
@@ -150,6 +152,7 @@ public:
             }
             pEntry = pEntry->mPNext;
         }
+        cc32xxLog("[%s] *** KeyNotFound in KVS *** (%s)", __FUNCTION__, key);
         return NULL;
     }
 
@@ -215,9 +218,30 @@ public:
 
     uint8_t * SerializeLinkedList(uint16_t * length)
     {
-        uint8_t * list                = new uint8_t[8192];
         CC32XXKVSEntry * currentEntry = mPHead;
         uint16_t bufferLength         = 0;
+
+        // calc length of serialised list and check that it is < NV_BUFFER_SIZE
+        while (currentEntry != NULL)
+        {
+            bufferLength += (uint8_t) strlen(currentEntry->Key());
+            bufferLength += (uint8_t) currentEntry->Len();
+            bufferLength += 3; // 1 byte key length, 2 bytes value length
+            currentEntry = currentEntry->mPNext;
+        }
+
+        cc32xxLog("[%s] serialised list size = %d", __FUNCTION__, bufferLength);
+
+        if (bufferLength > NV_BUFFER_SIZE)
+        {
+            cc32xxLog("[%s] list size > buffer size (%d), ERROR", __FUNCTION__, NV_BUFFER_SIZE);
+            *length = 0;
+            return NULL;
+        }
+
+        uint8_t * list                = new uint8_t[NV_BUFFER_SIZE](); // () to initialise to 0
+        bufferLength = 0;
+        currentEntry = mPHead;
 
         while (currentEntry != NULL)
         {
@@ -230,8 +254,8 @@ public:
             bufferLength += (uint16_t) strlen(currentEntry->Key());
 
             // copy value length
-            list[bufferLength]     = (uint8_t)(currentEntry->Len() & 0xFF);
-            list[bufferLength + 1] = (uint8_t)((currentEntry->Len() & 0xFF00) >> 8);
+            list[bufferLength]     = (uint8_t) (currentEntry->Len() & 0xFF);
+            list[bufferLength + 1] = (uint8_t) ((currentEntry->Len() & 0xFF00) >> 8);
             bufferLength           = bufferLength + 2;
 
             // copy value
@@ -256,6 +280,12 @@ public:
         {
             // read in key length
             uint8_t keyLen = list[currentLength];
+
+            // NV file (list) is zero padded to NV_BUFFER_SIZE.
+            if (keyLen == 0)
+            {
+                break;
+            }
             currentLength++;
 
             // read in key
@@ -267,7 +297,7 @@ public:
             // read in value length
 
             uint16_t valueLen = 0;
-            valueLen          = (uint16_t)(list[currentLength] | list[currentLength + 1] << 8);
+            valueLen          = (uint16_t) (list[currentLength] | list[currentLength + 1] << 8);
             currentLength += 2;
 
             // read in value
@@ -319,12 +349,51 @@ const CC32XXConfig::Key CC32XXConfig::kConfigKey_Spake2pSalt           = { "TI_k
 const CC32XXConfig::Key CC32XXConfig::kConfigKey_Spake2pVerifier       = { "TI_kConfigKey_Spake2pVerifier" };
 
 CC32XXKVSList * pList;
+static bool dirtyKvs;
+
+void HandleDirtyKvsSyncTimeout(chip::System::Layer * aSystemLayer, void * aAppState)
+{
+    CC32XXConfig::SyncKVS();
+}
 
 CHIP_ERROR CC32XXConfig::Init()
 {
     cc32xxLog("[CC32XXConfig::Init] KVS List created");
     pList = new CC32XXKVSList();
     ReadKVSFromNV();
+
+    dirtyKvs = false;
+
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR CC32XXConfig::DirtyKVS()
+{
+    cc32xxLog("[CC32XXConfig::DirtyKVS] KVS is Dirty !!");
+
+    if (dirtyKvs == false) {
+
+        // Mark KVS as dirty and set timer to perform writeback 
+        dirtyKvs = true;
+
+        // Start SyncKVS Timer
+        constexpr System::Clock::Timeout kvsSyncTimeout = System::Clock::Seconds16(10);
+        DeviceLayer::SystemLayer().StartTimer(kvsSyncTimeout, HandleDirtyKvsSyncTimeout, nullptr);
+    }
+
+    return CHIP_NO_ERROR;
+}
+
+
+CHIP_ERROR CC32XXConfig::SyncKVS()
+{
+    cc32xxLog("[CC32XXConfig::SyncKVS] Timeout expired, sync KVS -> NV");
+
+    if (dirtyKvs == true) {
+        WriteKVSToNV();
+        dirtyKvs = false;
+    }
+
     return CHIP_NO_ERROR;
 }
 
@@ -357,7 +426,11 @@ CHIP_ERROR CC32XXConfig::ReadConfigValue(Key key, uint64_t & val)
 
 CHIP_ERROR CC32XXConfig::ReadConfigValueStr(Key key, char * buf, size_t bufSize, size_t & outLen)
 {
-    return ReadConfigValueBin(key, (uint8_t *) buf, bufSize, outLen);
+    CHIP_ERROR ret;
+    size_t len;
+    ret = ReadConfigValueBin(key, (uint8_t *) buf, bufSize, len);
+    outLen = len - 1;
+    return ret;
 }
 
 CHIP_ERROR CC32XXConfig::ReadConfigValueBin(Key key, uint8_t * buf, size_t bufSize, size_t & outLen)
@@ -392,19 +465,23 @@ CHIP_ERROR CC32XXConfig::WriteConfigValue(Key key, uint64_t val)
 CHIP_ERROR CC32XXConfig::WriteConfigValueStr(Key key, const char * str)
 {
     size_t strLen = strlen(str);
-    return WriteConfigValueBin(key, (const uint8_t *) str, strLen);
+    return WriteConfigValueBin(key, (const uint8_t *) str, strLen + 1); // include NULL
 }
 CHIP_ERROR CC32XXConfig::WriteConfigValueStr(Key key, const char * str, size_t strLen)
 {
-    return WriteConfigValueBin(key, (const uint8_t *) str, strLen);
+    return WriteConfigValueBin(key, (const uint8_t *) str, strLen + 1); // include NULL
 }
 
 CHIP_ERROR CC32XXConfig::WriteConfigValueBin(Key key, const uint8_t * data, size_t dataLen)
 {
-    cc32xxLog("[%s]", __FUNCTION__);
+    cc32xxLog("[%s] %s", __FUNCTION__, key.key);
 
     CHIP_ERROR err = CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
     err            = pList->AddEntryByKey(key.key, data, (uint16_t) dataLen);
+
+    // KVS has been touched, mark as 'Dirty'
+    DirtyKVS();
+
     return err;
 }
 
@@ -414,6 +491,10 @@ CHIP_ERROR CC32XXConfig::ClearConfigValue(Key key)
 
     CHIP_ERROR err = CHIP_NO_ERROR;
     pList->DeleteEntryByKey(key.key);
+
+    // KVS has been touched, mark as 'Dirty'
+    DirtyKVS();
+
     return err;
 }
 
@@ -432,8 +513,8 @@ CHIP_ERROR CC32XXConfig::FactoryResetConfig()
 {
     cc32xxLog("[%s] ", __FUNCTION__);
 
-    while (true)
-        ;
+    SyncKVS();
+
     CHIP_ERROR err = CHIP_NO_ERROR;
     return err;
 }
@@ -452,6 +533,11 @@ CHIP_ERROR CC32XXConfig::ClearKVS(const char * key)
     char keyBuffer[40] = "";
     memcpy(keyBuffer, key, strlen(key));
     err = pList->DeleteEntryByKey(keyBuffer);
+
+    // KVS has been touched, mark as 'Dirty'
+    DirtyKVS();
+
+
     cc32xxLog("[%s] key %s", __FUNCTION__, key);
     return err;
 }
@@ -464,6 +550,9 @@ CHIP_ERROR CC32XXConfig::WriteKVS(const char * key, const void * value, size_t v
     char keyBuffer[40] = "";
     memcpy(keyBuffer, key, strlen(key));
     pList->AddEntryByKey(keyBuffer, (uint8_t *) value, value_size);
+
+    // Mark KVS as 'Dirty'
+    DirtyKVS();
 
     return err;
 }
@@ -504,15 +593,27 @@ CHIP_ERROR CC32XXConfig::ReadKVS(const char * key, void * value, size_t value_si
     return err;
 }
 
+extern "C" {
+    extern size_t xPortGetFreeHeapSize( void );
+}
+
 CHIP_ERROR CC32XXConfig::WriteKVSToNV()
 {
+    cc32xxLog("WriteKVSToNV++ len %d, xFreeBytesRemaining %d", NVBufferLength, xPortGetFreeHeapSize());
+
     uint8_t * list = pList->SerializeLinkedList(&NVBufferLength);
 
     uint32_t token = KVS_TOKEN;
 
     uint32_t fileSystemFlags = SL_FS_CREATE_STATIC_TOKEN | SL_FS_CREATE_VENDOR_TOKEN;
 
-    int ret = FILE_write(listName, NVBufferLength, list, &token, fileSystemFlags);
+    if (list == NULL)
+    {
+        cc32xxLog("could not serialize linked list");
+        return CHIP_ERROR_PERSISTED_STORAGE_FAILED;
+    }
+
+    int ret = FILE_write(listName, NV_BUFFER_SIZE /* NVBufferLength */, list, &token, fileSystemFlags);
     if (ret < 0)
     {
         cc32xxLog("could not write in Linked List to NV, error %d", ret);
@@ -522,6 +623,7 @@ CHIP_ERROR CC32XXConfig::WriteKVSToNV()
 
     else
     {
+        cc32xxLog("WriteKVSToNV done");
         delete(list);
         return CHIP_NO_ERROR;
     }
@@ -535,16 +637,16 @@ CHIP_ERROR CC32XXConfig::ReadKVSFromNV()
 
     uint8_t * list = new uint8_t[NV_BUFFER_SIZE];
     rc             = FILE_read((int8_t *) listName, NV_BUFFER_SIZE, list, KVS_TOKEN);
-    if (rc > 0)
+    if (rc == NV_BUFFER_SIZE)
     {
         bufferLength = rc;
-        pList->CreateLinkedListFromNV(list, bufferLength);
         cc32xxLog("read in KVS Linked List from NV");
+        pList->CreateLinkedListFromNV(list, bufferLength);
         return CHIP_NO_ERROR;
     }
     else
     {
-        cc32xxLog("could not read in Linked List from NV, error %d", rc);
+        cc32xxLog("could not read in Linked List from NV, error %d (or != KVS size %d)", rc, NV_BUFFER_SIZE);
         return CHIP_ERROR_PERSISTED_STORAGE_FAILED;
     }
 }

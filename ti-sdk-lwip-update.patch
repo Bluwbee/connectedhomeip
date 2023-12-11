@@ -467,7 +467,7 @@ index dc87582..d3560ea 100644
  
  __attribute__((weak)) void SimpleLinkSockEventHandler(SlSockEvent_t * pSock)
 diff --git a/platforms/ns/lwip/tcpip_if.c b/platforms/ns/lwip/tcpip_if.c
-index f70a878..928d696 100644
+index f70a878..5e0fcc6 100644
 --- a/platforms/ns/lwip/tcpip_if.c
 +++ b/platforms/ns/lwip/tcpip_if.c
 @@ -75,7 +75,7 @@
@@ -544,7 +544,7 @@ index f70a878..928d696 100644
          LOG_DEBUG("[TCPIP_IF_notifyLinkChange] I/F - DISCONNECTED!");
          tcpip_callback(LwipCB_linkDownDeferred, hNetIf);
      }
-@@ -431,15 +463,84 @@ int   TCPIP_IF_pktLength(void *hPkt)
+@@ -431,15 +463,90 @@ int   TCPIP_IF_pktLength(void *hPkt)
  
  int   TCPIP_IF_receive(void *hPkt, int pktLen, void *hNetif)
  {
@@ -560,7 +560,9 @@ index f70a878..928d696 100644
 +    if (pPkt == NULL) {
 +        for(;;) {
 +            LOG_ERROR("[TCPIP_IF_receive] out of Link BUFS !!!");
-+            sleep(1);
++            //sleep(1);
++            pbuf_free(pPkt);
++            return -1;
 +        }
 +    }
 +
@@ -608,7 +610,9 @@ index f70a878..928d696 100644
 +        if (sizeCopied != pktLen) {
 +            for(;;) {
 +                LOG_ERROR("[TCPIP_IF_receive] sizeCopied != pktLen !!!");
-+                sleep(1);
++                //sleep(1);
++                pbuf_free(pPkt);
++                return -1;
 +            }
 +        }
 +    }
@@ -616,7 +620,9 @@ index f70a878..928d696 100644
 +    else { //(pPkt->tot_len != pktLen)
 +        for(;;) {
 +            LOG_ERROR("[TCPIP_IF_receive] pPkt->tot_len != pktLen !!!");
-+            sleep(1);
++            //sleep(1);
++            pbuf_free(pPkt);
++            return -1;
 +        }
 +    }
 +#endif

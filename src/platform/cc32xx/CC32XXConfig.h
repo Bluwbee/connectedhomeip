@@ -88,6 +88,9 @@ public:
 
     static CHIP_ERROR WriteKVSToNV(void);
     static CHIP_ERROR ReadKVSFromNV(void);
+
+    static CHIP_ERROR DirtyKVS(void);
+    static CHIP_ERROR SyncKVS(void);
 };
 
 struct CC32XXConfig::Key

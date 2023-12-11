@@ -152,7 +152,8 @@ void ConnectivityManagerImpl::_OnPlatformEvent(const ChipDeviceEvent * event)
     if (event->Type == DeviceLayer::DeviceEventType::kCommissioningComplete)
     {
         ChipLogProgress(AppServer, "Commissioning completed successfully");
-        DeviceLayer::Internal::CC32XXConfig::WriteKVSToNV();
+//        DeviceLayer::Internal::CC32XXConfig::WriteKVSToNV();
+        DeviceLayer::Internal::CC32XXConfig::SyncKVS();
     }
 }
 
