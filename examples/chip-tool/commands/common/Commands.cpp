@@ -28,6 +28,7 @@
 #include <lib/support/Base64.h>
 #include <lib/support/CHIPMem.h>
 #include <lib/support/CodeUtils.h>
+#include <platform/CHIPDeviceConfig.h>
 #include <platform/KeyValueStoreManager.h>
 
 #include "../clusters/JsonParser.h"
@@ -42,6 +43,7 @@ constexpr const char * kJsonCommandKey              = "command";
 constexpr const char * kJsonCommandSpecifierKey     = "command_specifier";
 constexpr const char * kJsonArgumentsKey            = "arguments";
 
+#if !CHIP_DISABLE_PLATFORM_KVS
 template <typename T>
 struct HasInitWithString
 {
@@ -61,15 +63,14 @@ public:
 template <typename T, std::enable_if_t<HasInitWithString<T>::value, int> = 0>
 static void UseStorageDirectory(T & storageManagerImpl, const char * storageDirectory)
 {
-#if !CHIP_DISABLE_PLATFORM_KVS
     std::string platformKVS = std::string(storageDirectory) + "/chip_tool_kvs";
     storageManagerImpl.Init(platformKVS.c_str());
-#endif // !CHIP_DISABLE_PLATFORM_KVS
 }
 
 template <typename T, std::enable_if_t<!HasInitWithString<T>::value, int> = 0>
 static void UseStorageDirectory(T & storageManagerImpl, const char * storageDirectory)
 {}
+#endif // !CHIP_DISABLE_PLATFORM_KVS
 
 bool GetArgumentsFromJson(Command * command, Json::Value & value, bool optional, std::vector<std::string> & outArgs)
 {
@@ -181,7 +182,7 @@ exit:
     return (err == CHIP_NO_ERROR) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-int Commands::RunInteractive(const char * command, const chip::Optional<char *> & storageDirectory)
+int Commands::RunInteractive(const char * command, const chip::Optional<char *> & storageDirectory, bool advertiseOperational)
 {
     std::vector<std::string> arguments;
     VerifyOrReturnValue(DecodeArgumentsFromInteractiveMode(command, arguments), EXIT_FAILURE);
@@ -206,7 +207,7 @@ int Commands::RunInteractive(const char * command, const chip::Optional<char *> 
     }
 
     ChipLogProgress(chipTool, "Command: %s", commandStr.c_str());
-    auto err = RunCommand(argc, argv, true, storageDirectory);
+    auto err = RunCommand(argc, argv, true, storageDirectory, advertiseOperational);
 
     // Do not delete arg[0]
     for (auto i = 1; i < argc; i++)
@@ -218,7 +219,7 @@ int Commands::RunInteractive(const char * command, const chip::Optional<char *> 
 }
 
 CHIP_ERROR Commands::RunCommand(int argc, char ** argv, bool interactive,
-                                const chip::Optional<char *> & interactiveStorageDirectory)
+                                const chip::Optional<char *> & interactiveStorageDirectory, bool interactiveAdvertiseOperational)
 {
     Command * command = nullptr;
 
@@ -306,7 +307,7 @@ CHIP_ERROR Commands::RunCommand(int argc, char ** argv, bool interactive,
 
     if (interactive)
     {
-        return command->RunAsInteractive(interactiveStorageDirectory);
+        return command->RunAsInteractive(interactiveStorageDirectory, interactiveAdvertiseOperational);
     }
 
     // Now that the command is initialized, get our storage from it as needed
@@ -321,7 +322,10 @@ CHIP_ERROR Commands::RunCommand(int argc, char ** argv, bool interactive,
 
     chip::Logging::SetLogFilter(mStorage.GetLoggingLevel());
 
+#if !CHIP_DISABLE_PLATFORM_KVS
     UseStorageDirectory(chip::DeviceLayer::PersistedStorage::KeyValueStoreMgrImpl(), mStorage.GetDirectory());
+#endif // !CHIP_DISABLE_PLATFORM_KVS
+
 #endif // CONFIG_USE_LOCAL_STORAGE
 
     return command->Run();

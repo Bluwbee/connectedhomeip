@@ -42,7 +42,7 @@
 #include <uart.h>
 #endif
 
-#if CONFIG_BOUFFALOLAB_FACTORY_DATA_ENABLE || defined(CONFIG_BOUFFALOLAB_FACTORY_DATA_TEST)
+#if CONFIG_BOUFFALOLAB_FACTORY_DATA_ENABLE || CONFIG_BOUFFALOLAB_FACTORY_DATA_TEST
 #include <platform/bouffalolab/common/FactoryDataProvider.h>
 #endif
 
@@ -61,10 +61,10 @@
 #if CHIP_DEVICE_CONFIG_ENABLE_ETHERNET || CHIP_DEVICE_CONFIG_ENABLE_WIFI
 #include <bl_route_hook.h>
 #include <lwip/netif.h>
-#if CHIP_DEVICE_CONFIG_ENABLE_WIFI && BL602_ENABLE
+#if CHIP_DEVICE_CONFIG_ENABLE_WIFI && CHIP_DEVICE_LAYER_TARGET_BL602
 #include <wifi_mgmr_ext.h>
 #endif
-#if CHIP_DEVICE_CONFIG_ENABLE_WIFI && BL702_ENABLE
+#if CHIP_DEVICE_CONFIG_ENABLE_WIFI && CHIP_DEVICE_LAYER_TARGET_BL702
 #include <platform/bouffalolab/BL702/wifi_mgmr_portable.h>
 #endif
 #if CHIP_DEVICE_CONFIG_ENABLE_ETHERNET
@@ -87,7 +87,7 @@ chip::app::Clusters::NetworkCommissioning::Instance
 }
 #endif
 
-#if CONFIG_BOUFFALOLAB_FACTORY_DATA_ENABLE || defined(CONFIG_BOUFFALOLAB_FACTORY_DATA_TEST)
+#if CONFIG_BOUFFALOLAB_FACTORY_DATA_ENABLE || CONFIG_BOUFFALOLAB_FACTORY_DATA_TEST
 namespace {
 FactoryDataProvider sFactoryDataProvider;
 }
@@ -165,9 +165,24 @@ void ChipEventHandler(const ChipDeviceEvent * event, intptr_t arg)
     }
 }
 
+#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
+void LockOpenThreadTask(void)
+{
+    chip::DeviceLayer::ThreadStackMgr().LockThreadStack();
+}
+
+void UnlockOpenThreadTask(void)
+{
+    chip::DeviceLayer::ThreadStackMgr().UnlockThreadStack();
+}
+#endif
+
 CHIP_ERROR PlatformManagerImpl::PlatformInit(void)
 {
     chip::RendezvousInformationFlags rendezvousMode(chip::RendezvousInformationFlag::kOnNetwork);
+#if CONFIG_BOUFFALOLAB_FACTORY_DATA_ENABLE || CONFIG_BOUFFALOLAB_FACTORY_DATA_TEST
+    CHIP_ERROR retFactoryData = sFactoryDataProvider.Init();
+#endif
 
 #if PW_RPC_ENABLED
     PigweedLogger::pw_init();
@@ -206,8 +221,8 @@ CHIP_ERROR PlatformManagerImpl::PlatformInit(void)
 #endif
 
     // Initialize device attestation config
-#if CONFIG_BOUFFALOLAB_FACTORY_DATA_ENABLE || defined(CONFIG_BOUFFALOLAB_FACTORY_DATA_TEST)
-    if (CHIP_NO_ERROR == sFactoryDataProvider.Init())
+#if CONFIG_BOUFFALOLAB_FACTORY_DATA_ENABLE || CONFIG_BOUFFALOLAB_FACTORY_DATA_TEST
+    if (CHIP_NO_ERROR == retFactoryData)
     {
         SetDeviceInstanceInfoProvider(&sFactoryDataProvider);
         SetDeviceAttestationCredentialsProvider(&sFactoryDataProvider);
@@ -231,6 +246,14 @@ CHIP_ERROR PlatformManagerImpl::PlatformInit(void)
 
     static CommonCaseDeviceServerInitParams initParams;
     (void) initParams.InitializeStaticResourcesBeforeServerInit();
+
+#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
+    chip::Inet::EndPointStateOpenThread::OpenThreadEndpointInitParam nativeParams;
+    nativeParams.lockCb                = LockOpenThreadTask;
+    nativeParams.unlockCb              = UnlockOpenThreadTask;
+    nativeParams.openThreadInstancePtr = chip::DeviceLayer::ThreadStackMgrImpl().OTInstance();
+    initParams.endpointNativeParams    = static_cast<void *>(&nativeParams);
+#endif
 
     ReturnLogErrorOnFailure(chip::Server::GetInstance().Init(initParams));
 

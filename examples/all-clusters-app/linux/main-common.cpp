@@ -23,10 +23,12 @@
 #include "include/tv-callbacks.h"
 #include "laundry-washer-controls-delegate-impl.h"
 #include "laundry-washer-mode.h"
+#include "microwave-oven-mode.h"
 #include "operational-state-delegate-impl.h"
 #include "resource-monitoring-delegates.h"
 #include "rvc-modes.h"
 #include "tcc-mode.h"
+#include <Options.h>
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <app/CommandHandler.h>
 #include <app/att-storage.h>
@@ -45,8 +47,6 @@
 #include <system/SystemPacketBuffer.h>
 #include <transport/SessionManager.h>
 #include <transport/raw/PeerAddress.h>
-
-#include <Options.h>
 
 using namespace chip;
 using namespace chip::app;
@@ -227,6 +227,7 @@ void ApplicationShutdown()
     Clusters::LaundryWasherMode::Shutdown();
     Clusters::RvcCleanMode::Shutdown();
     Clusters::RvcRunMode::Shutdown();
+    Clusters::MicrowaveOvenMode::Shutdown();
     Clusters::RefrigeratorAndTemperatureControlledCabinetMode::Shutdown();
     Clusters::HepaFilterMonitoring::Shutdown();
     Clusters::ActivatedCarbonFilterMonitoring::Shutdown();
