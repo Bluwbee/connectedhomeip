@@ -13,14 +13,30 @@
 # limitations under the License.
 
 import("//build_overrides/chip.gni")
+import("${chip_root}/src/app/chip_data_model.gni")
 
-import("${chip_root}/config/standalone/args.gni")
+chip_data_model("evse-common") {
+  zap_file = "evse-app.zap"
 
-chip_device_project_config_include = "<CHIPProjectAppConfig.h>"
-chip_project_config_include = "<CHIPProjectAppConfig.h>"
-chip_system_project_config_include = "<SystemProjectConfig.h>"
+  zap_pregenerated_dir = "${chip_root}/zzz_generated/evse-app/zap-generated"
+  is_server = true
+}
 
-chip_project_config_include_dirs =
-    [ "${chip_root}/examples/lock-app/linux/include" ]
-chip_project_config_include_dirs += [ "${chip_root}/config/standalone" ]
-matter_enable_tracing_support = true
+config("config") {
+  include_dirs = [ "include" ]
+}
+
+source_set("evse-cluster-service") {
+  deps = [
+    "${chip_root}/examples/evse-app/evse-common",
+    "${chip_root}/src/lib",
+  ]
+  public_configs = [ ":config" ]
+  sources = [
+    "include/EvseEndpoint.h",
+    "include/EvseManager.h",
+    "src/EvseEndpoint.cpp",
+    "src/EvseManager.cpp",
+    "src/ZCLEvseCallbacks.cpp",
+  ]
+}

@@ -19,8 +19,8 @@
 #include "AppMain.h"
 #include <app-common/zap-generated/ids/Clusters.h>
 
-#include "LockAppCommandDelegate.h"
-#include "LockManager.h"
+#include "EvseAppCommandDelegate.h"
+#include "EvseManager.h"
 
 using namespace chip;
 using namespace chip::app;
@@ -29,14 +29,14 @@ namespace {
 // Variables for handling named pipe commands
 constexpr char kChipEventFifoPathPrefix[] = "/tmp/chip_lock_app_fifo-";
 NamedPipeCommands sChipNamedPipeCommands;
-LockAppCommandDelegate sLockAppCommandDelegate;
+EvseAppCommandDelegate sEvseAppCommandDelegate;
 
 } // anonymous namespace
 
 void ApplicationInit()
 {
     auto path = kChipEventFifoPathPrefix + std::to_string(getpid());
-    if (sChipNamedPipeCommands.Start(path, &sLockAppCommandDelegate) != CHIP_NO_ERROR)
+    if (sChipNamedPipeCommands.Start(path, &sEvseAppCommandDelegate) != CHIP_NO_ERROR)
     {
         ChipLogError(NotSpecified, "Failed to start CHIP NamedPipeCommands");
         sChipNamedPipeCommands.Stop();
@@ -55,7 +55,7 @@ int main(int argc, char * argv[])
 void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & attributePath, uint8_t type, uint16_t size,
                                        uint8_t * value)
 {
-    // TODO: Watch for LockState, DoorState, Mode, etc changes and trigger appropriate action
+    // TODO: Watch for EvseState, DoorState, Mode, etc changes and trigger appropriate action
     if (attributePath.mClusterId == Clusters::DoorLock::Id)
     {
         ChipLogProgress(Zcl, "Door Lock attribute changed");
