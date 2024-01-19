@@ -1,5 +1,5 @@
 diff --git a/platforms/drivers/cc32xx-transceiver/wifi_if.c b/platforms/drivers/cc32xx-transceiver/wifi_if.c
-index dc87582..9f3110a 100644
+index dc87582..c7d054c 100644
 --- a/platforms/drivers/cc32xx-transceiver/wifi_if.c
 +++ b/platforms/drivers/cc32xx-transceiver/wifi_if.c
 @@ -84,6 +84,8 @@
@@ -28,12 +28,8 @@ index dc87582..9f3110a 100644
  
  __attribute__((weak)) void SimpleLinkSockEventHandler(SlSockEvent_t * pSock)
  {
-@@ -752,16 +755,29 @@ static void SlWifiConnEventHandler(WifiConnEventId_e eventId , WifiConnEventData
-  *****************************************************************************
-           Network Ready (after MAC Connection), 
-           IP Acquisition/Loss Inidcations,
--          TX/RX Handling   
-+          TX/RX Handling
+@@ -755,16 +758,37 @@ static void SlWifiConnEventHandler(WifiConnEventId_e eventId , WifiConnEventData
+           TX/RX Handling   
   *****************************************************************************
   */
 -static void TcpipEventHandler(void *pNetif, TcpipStatue_e status, void * pParams)
@@ -60,6 +56,17 @@ index dc87582..9f3110a 100644
          break;
      case E_TCPIP_STATUS_IP_LOST:
          Notify(WIFI_STATUS_CONNECTED);
++
++        SlNetAppEvent_t slNetAppEvent;
++        slNetAppEvent.Id = SL_NETAPP_EVENT_IPV4_LOST;
++        slNetAppEvent.Data.IpV4Lost.Status = status;
++
++        LOG_INFO("ipv4 lost status=%x\n\r", slNetAppEvent.Data.IpV4Lost.Status);
++        slcb_NetAppEvtHdlr(&slNetAppEvent);
++        
+         break;
+     default:
+         break;
 diff --git a/platforms/ns/lwip/tcpip_if.c b/platforms/ns/lwip/tcpip_if.c
 index f70a878..928d696 100644
 --- a/platforms/ns/lwip/tcpip_if.c
