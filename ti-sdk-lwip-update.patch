@@ -1,8 +1,8 @@
 diff --git a/platforms/drivers/cc32xx-transceiver/wifi_if.c b/platforms/drivers/cc32xx-transceiver/wifi_if.c
-index dc87582..c7d054c 100644
+index dc87582..835bfad 100644
 --- a/platforms/drivers/cc32xx-transceiver/wifi_if.c
 +++ b/platforms/drivers/cc32xx-transceiver/wifi_if.c
-@@ -84,6 +84,8 @@
+@@ -84,10 +84,12 @@
  #include <ti/net/slnetconn.h>
  #include <ti/net/slnetif.h>
  
@@ -11,7 +11,20 @@ index dc87582..c7d054c 100644
  #undef DEBUG_IF_NAME
  #undef DEBUG_IF_SEVERITY
  #define DEBUG_IF_NAME       "WIFI"
-@@ -339,6 +341,7 @@ static int NetworkBypass(bool bEnableCmd)
+-#define DEBUG_IF_SEVERITY   WIFI_IF_DEBUG_LEVEL
++#define DEBUG_IF_SEVERITY   E_TRACE //WIFI_IF_DEBUG_LEVEL
+ 
+ #define WIFI_BUFF_SIZE 1544
+ 
+@@ -335,10 +337,15 @@ static int NetworkBypass(bool bEnableCmd)
+        rc = sl_NetCfgSet(SL_NETCFG_IPV4_STA_ADDR_MODE,SL_NETCFG_ADDR_DHCP_LLA,0,0);
+        bEnabled = false;
+     }
++
++    LOG_INFO("Disable power management");
++    sl_WlanPolicySet(SL_WLAN_POLICY_PM , SL_WLAN_ALWAYS_ON_POLICY, NULL,0);
++
+     LOG_INFO("Configure N/W Bypass mode (%d)", rc);
      return rc;
  }
  
@@ -19,7 +32,7 @@ index dc87582..c7d054c 100644
  /*********************** SimpleLink Event Handlers ***************************
   *****************************************************************************
            SimpleLink Callback Functions :WLAN, NETAPP and GENERAL EVENTS
-@@ -605,7 +608,7 @@ void SimpleLinkFatalErrorEventHandler(SlDeviceFatal_t *slFatalErrorEvent)
+@@ -605,7 +612,7 @@ void SimpleLinkFatalErrorEventHandler(SlDeviceFatal_t *slFatalErrorEvent)
          break;
      }
  }
@@ -28,7 +41,7 @@ index dc87582..c7d054c 100644
  
  __attribute__((weak)) void SimpleLinkSockEventHandler(SlSockEvent_t * pSock)
  {
-@@ -755,16 +758,37 @@ static void SlWifiConnEventHandler(WifiConnEventId_e eventId , WifiConnEventData
+@@ -755,16 +762,37 @@ static void SlWifiConnEventHandler(WifiConnEventId_e eventId , WifiConnEventData
            TX/RX Handling   
   *****************************************************************************
   */
@@ -68,7 +81,7 @@ index dc87582..c7d054c 100644
      default:
          break;
 diff --git a/platforms/ns/lwip/tcpip_if.c b/platforms/ns/lwip/tcpip_if.c
-index f70a878..928d696 100644
+index f70a878..0578beb 100644
 --- a/platforms/ns/lwip/tcpip_if.c
 +++ b/platforms/ns/lwip/tcpip_if.c
 @@ -75,7 +75,7 @@
@@ -145,7 +158,7 @@ index f70a878..928d696 100644
          LOG_DEBUG("[TCPIP_IF_notifyLinkChange] I/F - DISCONNECTED!");
          tcpip_callback(LwipCB_linkDownDeferred, hNetIf);
      }
-@@ -431,15 +463,84 @@ int   TCPIP_IF_pktLength(void *hPkt)
+@@ -431,15 +463,89 @@ int   TCPIP_IF_pktLength(void *hPkt)
  
  int   TCPIP_IF_receive(void *hPkt, int pktLen, void *hNetif)
  {
@@ -159,10 +172,11 @@ index f70a878..928d696 100644
 +
 +
 +    if (pPkt == NULL) {
-+        for(;;) {
++        // for(;;) {
 +            LOG_ERROR("[TCPIP_IF_receive] out of Link BUFS !!!");
-+            sleep(1);
-+        }
++            return -1;
++        //     sleep(1);
++        // }
 +    }
 +
 +
@@ -207,18 +221,22 @@ index f70a878..928d696 100644
 +
 +        // check
 +        if (sizeCopied != pktLen) {
-+            for(;;) {
++            // for(;;) {
 +                LOG_ERROR("[TCPIP_IF_receive] sizeCopied != pktLen !!!");
-+                sleep(1);
-+            }
++                pbuf_free(pPkt);
++                return -1;
++            //     sleep(1);
++            // }
 +        }
 +    }
 +    // first ensure that pbuf is big enough
 +    else { //(pPkt->tot_len != pktLen)
-+        for(;;) {
++        // for(;;) {
 +            LOG_ERROR("[TCPIP_IF_receive] pPkt->tot_len != pktLen !!!");
-+            sleep(1);
-+        }
++            pbuf_free(pPkt);
++            return -1;
++            // sleep(1);
++        // }
 +    }
 +#endif
 +
@@ -231,6 +249,68 @@ index f70a878..928d696 100644
 +    }
 +    return (ret);
  }
+ 
+diff --git a/platforms/ns/net_log.c b/platforms/ns/net_log.c
+index f55512e..e42f845 100644
+--- a/platforms/ns/net_log.c
++++ b/platforms/ns/net_log.c
+@@ -54,6 +54,8 @@
+ #include "net_log.h"
+ #include "debug_if.h"
+ 
++#include "trace.h"
++
+ #undef DEBUG_IF_NAME
+ #define DEBUG_IF_NAME       "NET"
+ #undef DEBUG_IF_SEVERITY
+@@ -86,6 +88,31 @@ typedef enum { false, true } bool;
+ #define ICMP6_LOG  (1)
+ #define IGMP_LOG   (1)
+ 
++#include <lwip/stats.h>
++
++#if 0
++#include "trace.h"
++void ETHERNET_logFrame(logType_e type, char *pIfName, uint32_t nBytes, uint8_t * p)
++{
++    char typeChar = (type==LOG_RX)?'<':'>';
++    trace_put('\n');
++    trace_put(',');
++    trace_put(typeChar);
++    trace_put(',');
++    uint8_t avialPbufChar;
++    if(lwip_stats.memp[17]->used < 10)
++    {
++        avialPbufChar = '0' + lwip_stats.memp[17]->used;
++    }
++    else
++    {
++        avialPbufChar = 'a' + (lwip_stats.memp[17]->used - 10);
++    }
++    trace_put(avialPbufChar);
++    trace_put('\n');
++}
++
++#else
+ static uint32_t IPv6_LOG(char *buff, uint32_t offset, uint8_t *iphdr, int ipOffset)
+ {
+     int i;
+@@ -124,6 +151,7 @@ static uint32_t IPv6_LOG(char *buff, uint32_t offset, uint8_t *iphdr, int ipOffs
+ */
+ void ETHERNET_logFrame(logType_e type, char *pIfName, uint32_t nBytes, uint8_t * p)
+ {
++  
+     uint16_t prot;
+     uint8_t *ethhdr = p;
+     char *pTypeStr = (type==LOG_RX)?"RCVD":"SENT";
+@@ -263,6 +291,8 @@ void ETHERNET_logFrame(logType_e type, char *pIfName, uint32_t nBytes, uint8_t *
+     }
+     }
+     LOG_TRACE("%s", buff);
++    //LOG_INFO(", %d, %s", lwip_stats.memp[17]->used, buff);
+ }
++#endif
+ 
  
 diff --git a/source/third_party/mbedtls/ti/port/entropy_alt.c b/source/third_party/mbedtls/ti/port/entropy_alt.c
 index 16fe0f1..ecf08c0 100644
