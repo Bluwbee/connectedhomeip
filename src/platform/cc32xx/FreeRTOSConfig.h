@@ -55,7 +55,7 @@ supported, or if both static and dynamic allocation are supported. */
 #define configMINIMAL_STACK_SIZE ((unsigned short) 256) // changed from 128
 #define configMAX_TASK_NAME_LEN (12)
 
-#define configTOTAL_HEAP_SIZE ((size_t) 200000-60864-6688)
+#define configTOTAL_HEAP_SIZE ((size_t) 200000-60864-6688-296-1776-32)
 
 /* Idle task stack size in words */
 #define configIDLE_TASK_STACK_DEPTH (configMINIMAL_STACK_SIZE * 2)
