@@ -8,7 +8,7 @@ pipeline
             agent { docker { image "ubuntu:latest" } }
             steps
             {
-                sh echo "Hello You"
+                echo "Hello You"
             }
         }
     }
