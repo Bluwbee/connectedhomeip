@@ -10,7 +10,9 @@ pipeline
         { 
             steps
             {
-                echo "Hello You"
+                script{
+                    sh "echo Hello You"
+                }
             }
         }
     }
