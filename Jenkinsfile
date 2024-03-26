@@ -10,8 +10,11 @@ pipeline
         { 
             steps
             {
-                script{
-                    sh "echo Hello You"
+                echo "hello from docker"
+                dir("/build")
+                {
+                    sh cmake ..
+                    sh make 
                 }
             }
         }
