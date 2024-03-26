@@ -13,7 +13,8 @@ pipeline
                 echo "hello from docker"
 
                 git 'https://github.com/Bluwbee/connectedhomeip'
-
+                sh 'mkdir build'
+            
                 dir("/build")
                 {
                     sh 'cmake ..'
