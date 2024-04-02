@@ -1,11 +1,6 @@
 pipeline
 {
-    agent { 
-        docker { 
-            image "ubuntu:latest" 
-            args  "-u 0"
-        } 
-    }
+    agent { dockerfile true }
     
     stages
     {
@@ -14,15 +9,11 @@ pipeline
             environment{
                 DEBIAN_FRONTEND = 'noninteractive'
                 ZAP_DEVELOPMENT_PATH = "${env.WORKSPACE}/zap-dir"
+                CYPRESS_CACHE_FOLDER = "${WORKSPACE}/.cypress/.cache"
             }
             steps
             {
                 echo "hello from docker"
-                
-                sh 'apt-get update'
-                sh 'apt-get install -y gn git gcc g++ python3 pkg-config libssl-dev libdbus-1-dev libglib2.0-dev ninja-build python3-venv python3-dev unzip'
-                sh 'apt-get install -y libavahi-client-dev python3-pip libgirepository1.0-dev libcairo2-dev libreadline-dev libsdl2-dev'
-                sh 'apt-get install -y npm wget'
                 
                 // Download and install ZAP
                 dir('zap-dir'){
@@ -35,24 +26,34 @@ pipeline
                         n 19.0.0
                     '''
                     sh 'node --version'
+                    
+                    sh 'ZAP_DEVELOPMENT_PATH=${PWD}/zap'
+                    sh 'ls ${ZAP_DEVELOPMENT_PATH}'
+                    
+                    sh 'export CYPRESS_CACHE_FOLDER=${PWD}/cypress/.cache'
                 }
                 
                 sh 'git config --system --add safe.directory "*"'
-                sh 'git submodule update --init'
-                
+
                 sh '''#!/bin/bash
-                    scripts/tools/zap/zap_bootstrap.sh
+                    source scripts/tools/zap/zap_bootstrap.sh
                 '''
-                sh '''#!/bin/bash
-                    source ./scripts/activate.sh
-                ''' 
-    
-                // Reinstall the troublesome module + install missing
-                sh 'python3 -m pip uninstall prompt_toolkit'
-                sh 'python3 -m pip install prompt_toolkit click lark jinja2 stringcase'
+                
+                dir('examples/air-quality-sensor-app/linux'){
+
+                    sh 'git submodule update --init'
+
+                    sh '''#!/bin/bash
+                        source ../../../scripts/activate.sh
+                    '''
             
-                sh 'gn gen examples/air-quality-sensor-app/linux/out/debug'
-                sh 'ninja -C examples/air-quality-sensor-app/linux/out/debug' 
+                    sh '''#!/bin/bash
+                        gn gen out/debug
+                    '''
+                    sh '''#!/bin/bash
+                        ninja -C out/debug
+                    '''
+                }
             }
         }
     }
