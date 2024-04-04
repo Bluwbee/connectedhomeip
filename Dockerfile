@@ -25,20 +25,14 @@ RUN apt-get update \
     libpython2.7 \
     && :
 
+RUN apt-get update \ 
+    && apt-get install -y gn git gcc g++ python3 pkg-config libssl-dev libdbus-1-dev libglib2.0-dev ninja-build python3-venv python3-dev unzip openssl libavahi-client-dev python3-pip libgirepository1.0-dev libcairo2-dev libreadline-dev libsdl2-dev npm wget libpixman-1-dev libcairo-dev libsdl-pango-dev libjpeg-dev libgif-dev
+
+# Reinstall the troublesome module + install missing
+RUN python3 -m pip uninstall prompt_toolkit && python3 -m pip install prompt_toolkit click lark jinja2 stringcase
+
 RUN groupadd -g $USER_GID $USERNAME \
     && useradd -s /bin/bash -u $USER_UID -g $USER_GID -G docker,sudo -m $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     && :
-
-RUN apt-get update \ 
-    && apt-get install -y gn git gcc g++ python3 pkg-config libssl-dev libdbus-1-dev libglib2.0-dev ninja-build python3-venv python3-dev unzip openssl libavahi-client-dev python3-pip libgirepository1.0-dev libcairo2-dev libreadline-dev libsdl2-dev npm wget libpixman-1-dev libcairo-dev libsdl-pango-dev libjpeg-dev libgif-dev
-
-
-# Update npm
-RUN npm install npm && npm install -g n && n 19.0.0
-
-# Reinstall the troublesome module + install missing
-RUN python3 -m pip uninstall prompt_toolkit && python3 -m pip install prompt_toolkit click lark jinja2 stringcase
-
-
