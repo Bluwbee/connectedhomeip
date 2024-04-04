@@ -14,6 +14,10 @@ pipeline
             }
             steps
             {
+                sh 'sudo npm install n -g'
+                sh 'sudo n 19.0.0'
+                sh 'node --version'
+
                 sh 'git clean -xdf'
                 
                 // Download and install ZAP
